@@ -1,7 +1,16 @@
 2002-09-25  akira yamada  <akira@arika.org>
 
+	* termios.c
+	(termios_clone): new method "clone" for Termios::Termios.
+	(Init_termios): revived Termios.new_termios for backward
+	compatibility.
+
+	* version 0.9.1.
+	
+2002-09-25  akira yamada  <akira@arika.org>
+
 	* Termios module can be included to IO classes and can extend IO
-	  objects.
+	objects.
 	
 	* now Termios::Termios is rb_cObject class.
 
