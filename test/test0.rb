@@ -8,4 +8,5 @@ p now
 p old
 p new
 
+p $$
 p Termios::getpgrp($stdin)

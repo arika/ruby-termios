@@ -4,7 +4,11 @@ ruby-termios
 Description
 -----------
 
-Ruby-termios enables you to use termios(3) interface by Ruby.
+Ruby-termios enables you to use termios(3) interface.
+
+Termios module are simple wrapper for termios(3).  It can be included
+into IO-family classes and can extend IO-family objects.  In addition,
+the methods can use as module function.
 
 
 Requires
