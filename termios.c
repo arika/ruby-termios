@@ -2,7 +2,7 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.4 2002-09-25 12:53:17 akira Exp $
+  $Id: termios.c,v 1.5 2002-10-10 16:36:51 akira Exp $
 
  */
 
@@ -579,42 +579,44 @@ Init_termios()
 
     rb_define_singleton_method(cTermios, "new", termios_s_new, -1);
 
-    rb_define_method(cTermios, "iflag",   termios_iflag,      0);
-    rb_define_method(cTermios, "iflag=",  termios_set_iflag,  1);
+    rb_define_method(cTermios,   "iflag",   termios_iflag,      0);
+    rb_define_method(cTermios, "c_iflag",   termios_iflag,      0);
+    rb_define_method(cTermios,   "iflag=",  termios_set_iflag,  1);
+    rb_define_method(cTermios, "c_iflag=",  termios_set_iflag,  1);
 
-    rb_define_method(cTermios, "oflag",   termios_oflag,      0);
-    rb_define_method(cTermios, "oflag=",  termios_set_oflag,  1);
+    rb_define_method(cTermios,   "oflag",   termios_oflag,      0);
+    rb_define_method(cTermios, "c_oflag",   termios_oflag,      0);
+    rb_define_method(cTermios,   "oflag=",  termios_set_oflag,  1);
+    rb_define_method(cTermios, "c_oflag=",  termios_set_oflag,  1);
 
-    rb_define_method(cTermios, "cflag",   termios_cflag,      0);
-    rb_define_method(cTermios, "cflag=",  termios_set_cflag,  1);
+    rb_define_method(cTermios,   "cflag",   termios_cflag,      0);
+    rb_define_method(cTermios, "c_cflag",   termios_cflag,      0);
+    rb_define_method(cTermios,   "cflag=",  termios_set_cflag,  1);
+    rb_define_method(cTermios, "c_cflag=",  termios_set_cflag,  1);
 
-    rb_define_method(cTermios, "lflag",   termios_lflag,      0);
-    rb_define_method(cTermios, "lflag=",  termios_set_lflag,  1);
+    rb_define_method(cTermios,   "lflag",   termios_lflag,      0);
+    rb_define_method(cTermios, "c_lflag",   termios_lflag,      0);
+    rb_define_method(cTermios,   "lflag=",  termios_set_lflag,  1);
+    rb_define_method(cTermios, "c_lflag=",  termios_set_lflag,  1);
 
-    rb_define_method(cTermios, "cc",      termios_cc,         0);
-    rb_define_method(cTermios, "cc=",     termios_set_cc,     1);
+    rb_define_method(cTermios,   "cc",      termios_cc,         0);
+    rb_define_method(cTermios, "c_cc",      termios_cc,         0);
+    rb_define_method(cTermios,   "cc=",     termios_set_cc,     1);
+    rb_define_method(cTermios, "c_cc=",     termios_set_cc,     1);
 
-    rb_define_method(cTermios, "ispeed",  termios_ispeed,     0);
-    rb_define_method(cTermios, "ispeed=", termios_set_ispeed, 1);
+    rb_define_method(cTermios,   "ispeed",  termios_ispeed,     0);
+    rb_define_method(cTermios, "c_ispeed",  termios_ispeed,     0);
+    rb_define_method(cTermios,   "ispeed=", termios_set_ispeed, 1);
+    rb_define_method(cTermios, "c_ispeed=", termios_set_ispeed, 1);
 
-    rb_define_method(cTermios, "ospeed",  termios_ospeed,     0);
-    rb_define_method(cTermios, "ospeed=", termios_set_ospeed, 1);
+    rb_define_method(cTermios,   "ospeed",  termios_ospeed,     0);
+    rb_define_method(cTermios, "c_ospeed",  termios_ospeed,     0);
+    rb_define_method(cTermios,   "ospeed=", termios_set_ospeed, 1);
+    rb_define_method(cTermios, "c_ospeed=", termios_set_ospeed, 1);
 
-    rb_define_method(cTermios, "clone",   termios_clone,      0);
+    rb_define_method(cTermios, "clone",     termios_clone,      0);
 
-#if 0
-    sTermios = rb_struct_define("Termios",
-				"c_iflag",	/* input modes */
-				"c_oflag",	/* output modes */
-				"c_cflag",	/* control modes */
-				"c_lflag",	/* local modes */
-				"c_cc",	/* control chars */
-				"c_ispeed",	/* input speed */
-				"c_ospeed",	/* output speed */
-				0);
-    /* rb_define_const(mTermios, "Termios", sTermios); */
-    rb_global_variable(&sTermios);
-#endif
+    /* constants under Termios module */
 
     rb_define_const(mTermios, "NCCS", INT2FIX(NCCS));
 
