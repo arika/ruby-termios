@@ -79,9 +79,14 @@ extended by Termios module.
 
 === Constants
 
-Many constants which are derived from "termios.h" are defined on
-Termios module.
+Many constants which are derived from "termios.h" are defined on Termios
+module.
 
+IFLAGS, OFLAGS, CFLAGS and LFLAGS are Hash object.  They contains Symbols of
+constants for c_iflag, c_oflag, c_cflag and c_lflag.
+
+CCINDEX and BAUD are Hash object too.  They contains Symbols of constats for
+c_cc or ispeed and ospeed.
 
 == Termios::Termios class
 
@@ -95,45 +100,70 @@ A wrapper class for "struct termios" in C.
 === Instance Methods
 
 --- iflag
+--- c_iflag
     It returns value of c_iflag.
 
 --- iflag=(flag)
+--- c_iflag=(flag)
     It sets flag to c_iflag.
 
 --- oflag
+--- c_oflag
     It returns value of c_oflag.
 
 --- oflag=(flag)
+--- c_oflag=(flag)
     It sets flag to c_oflag.
 
 --- cflag
+--- c_cflag
     It returns value of c_cflag.
 
 --- cflag=(flag)
+--- c_cflag=(flag)
     It sets flag to c_cflag.
 
 --- lflag
+--- c_lflag
     It returns value of c_lflag.
 
 --- lflag=(flag)
+--- c_lflag=(flag)
     It sets flag to c_lflag.
 
---- cc
-    It returns values of c_cc.
+--- cc(cc_idx = nil)
+--- c_cc(cc_idx = nil)
+    cc_idx is nil, then it returns values of c_cc.
+    cc_idx is Fixnum, then it returns a value of c_cc[cc_idx].
+
+    Note: If you evaluates "c_cc[idx] = char", 
+    then cc_ary which is returned by c_cc are changed but
+    the Termios object are not changed.
+    "cc=" or "set_cc" is useful for the purpose.
 
 --- cc=(cc_ary)
+--- c_cc=(cc_ary)
     It sets cc_ary to c_cc.
 
+--- set_cc(cc_idx, cc_value)
+    It sets cc_value to c_cc[cc_idx].
+    If cc_value are omitted and cc_idx if Array, 
+    then it treats cc_idx as cc_ary and sets to c_cc.
+
 --- ispeed
+--- c_ispeed
     It returns c_ispeeed.
 
 --- ispeed=(speed)
+--- c_ispeed=(speed)
     It sets speed to c_ispeed.
 
 --- ospeed
+--- c_ospeed
     It returns c_ospeeed.
 
 --- ospeed=(speed)
+--- c_ospeed=(speed)
     It sets speed to c_ospeed.
 
 =end

@@ -2,7 +2,7 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.5 2002-10-10 16:36:51 akira Exp $
+  $Id: termios.c,v 1.6 2002-10-12 09:53:29 akira Exp $
 
  */
 
@@ -36,7 +36,7 @@ Termios_to_termios(obj)
 
 
 static VALUE
-termios_tcgetattr0(io)
+termios_tcgetattr(io)
     VALUE io;
 {
     struct termios *t;
@@ -50,15 +50,8 @@ termios_tcgetattr0(io)
 	rb_raise(rb_eRuntimeError, 
 		 "can't get terminal parameters (%s)", strerror(errno));
     }
-    return obj;
-}
 
-static VALUE
-termios_tcgetattr(io)
-    VALUE io;
-{
-    Check_Type(io, T_FILE);
-    return termios_tcgetattr0(io);
+    return obj;
 }
 
 static VALUE
@@ -85,7 +78,7 @@ termios_tcsetattr(io, opt, param)
 		 type);
     }
 
-    old = termios_tcgetattr0(io);
+    old = termios_tcgetattr(io);
     GetOpenFile(io, fptr);
     t = Termios_to_termios(param);
     if (tcsetattr(fileno(fptr->f), FIX2INT(opt), t) < 0) {
@@ -440,20 +433,35 @@ termios_set_lflag(self, value)
 }
 
 static VALUE
-termios_cc(self)
+termios_cc(argc, argv, self)
+    int argc;
+    VALUE *argv;
     VALUE self;
 {
     int i;
     struct termios *t;
-    VALUE ary;
+    VALUE ret, index;
 
+    rb_scan_args(argc, argv, "01", &index);
     Data_Get_Struct(self, struct termios, t);
-    ary = rb_ary_new2(NCCS);
-    for (i = 0; i < NCCS; i++) {
-	rb_ary_push(ary, INT2FIX(t->c_cc[i]));
+
+    if (NIL_P(index)) {
+      ret = rb_ary_new2(NCCS);
+      for (i = 0; i < NCCS; i++) {
+  	  rb_ary_push(ret, INT2FIX(t->c_cc[i]));
+      }
+    }
+    else {
+      Check_Type(index, T_FIXNUM);
+      i = NUM2INT(index);
+      if (i < 0 || NCCS <= i) {
+	rb_raise(rb_eArgError, "bad number for control charcters");
+      }
+
+      ret = INT2NUM(t->c_cc[i]);
     }
 
-    return ary;
+    return ret;
 }
 
 static VALUE
@@ -467,6 +475,37 @@ termios_set_cc(self, value)
     Data_Get_Struct(self, struct termios, t);
     for (i = 0; i < NCCS && i < RARRAY(value)->len; i++) {
 	t->c_cc[i] = FIX2INT(RARRAY(value)->ptr[i]);
+    }
+
+    return value;
+}
+
+static VALUE
+termios_set_a_cc(argc, argv, self)
+    int argc;
+    VALUE *argv;
+    VALUE self;
+{
+    VALUE index, value;
+    struct termios *t;
+    int i;
+
+    rb_scan_args(argc, argv, "11", &index, &value);
+    if (NIL_P(value)) {
+      Check_Type(index, T_ARRAY);
+      value = termios_set_cc(self, index);
+    }
+    else {
+      Check_Type(index, T_FIXNUM);
+      Check_Type(value, T_FIXNUM);
+
+      i = NUM2INT(index);
+      if (i < 0 || NCCS <= i) {
+	rb_raise(rb_eArgError, "bad number for control charcters");
+      }
+
+      Data_Get_Struct(self, struct termios, t);
+      t->c_cc[i] = NUM2INT(value);
     }
 
     return value;
@@ -535,6 +574,8 @@ termios_clone(self)
 void
 Init_termios()
 {
+    VALUE ccindex, iflags, oflags, cflags, lflags, baud;
+
     /* module Termios */
 
     mTermios = rb_define_module("Termios");
@@ -599,10 +640,11 @@ Init_termios()
     rb_define_method(cTermios,   "lflag=",  termios_set_lflag,  1);
     rb_define_method(cTermios, "c_lflag=",  termios_set_lflag,  1);
 
-    rb_define_method(cTermios,   "cc",      termios_cc,         0);
-    rb_define_method(cTermios, "c_cc",      termios_cc,         0);
+    rb_define_method(cTermios,   "cc",      termios_cc,         -1);
+    rb_define_method(cTermios, "c_cc",      termios_cc,         -1);
     rb_define_method(cTermios,   "cc=",     termios_set_cc,     1);
     rb_define_method(cTermios, "c_cc=",     termios_set_cc,     1);
+    rb_define_method(cTermios, "set_cc",    termios_set_a_cc,   -1);
 
     rb_define_method(cTermios,   "ispeed",  termios_ispeed,     0);
     rb_define_method(cTermios, "c_ispeed",  termios_ispeed,     0);
@@ -618,358 +660,383 @@ Init_termios()
 
     /* constants under Termios module */
 
-    rb_define_const(mTermios, "NCCS", INT2FIX(NCCS));
+    rb_define_const(mTermios, "NCCS",    INT2FIX(NCCS));
+
+    ccindex = rb_hash_new();
+    rb_define_const(mTermios, "CCINDEX", ccindex);
+
+    iflags = rb_hash_new();
+    rb_define_const(mTermios, "IFLAGS", iflags);
+
+    oflags = rb_hash_new();
+    rb_define_const(mTermios, "OFLAGS", oflags);
+
+    cflags = rb_hash_new();
+    rb_define_const(mTermios, "CFLAGS", cflags);
+
+    lflags = rb_hash_new();
+    rb_define_const(mTermios, "LFLAGS", lflags);
+
+    baud = rb_hash_new();
+    rb_define_const(mTermios, "BAUD", baud);
+
+#define define_flag(hash, flag) \
+    { \
+      rb_define_const(mTermios, #flag, INT2FIX(flag)); \
+      rb_hash_aset(hash, rb_const_get(mTermios, rb_intern(#flag)), \
+	  ID2SYM(rb_intern(#flag))); \
+    }
 
     /* c_cc characters */
 #ifdef VINTR
-    rb_define_const(mTermios, "VINTR", INT2FIX(VINTR));
+    define_flag(ccindex, VINTR);
 #endif
 #ifdef VQUIT
-    rb_define_const(mTermios, "VQUIT", INT2FIX(VQUIT));
+    define_flag(ccindex, VQUIT);
 #endif
 #ifdef VERASE
-    rb_define_const(mTermios, "VERASE", INT2FIX(VERASE));
+    define_flag(ccindex, VERASE);
 #endif
 #ifdef VKILL
-    rb_define_const(mTermios, "VKILL", INT2FIX(VKILL));
+    define_flag(ccindex, VKILL);
 #endif
 #ifdef VEOF
-    rb_define_const(mTermios, "VEOF", INT2FIX(VEOF));
+    define_flag(ccindex, VEOF);
 #endif
 #ifdef VTIME
-    rb_define_const(mTermios, "VTIME", INT2FIX(VTIME));
+    define_flag(ccindex, VTIME);
 #endif
 #ifdef VMIN
-    rb_define_const(mTermios, "VMIN", INT2FIX(VMIN));
+    define_flag(ccindex, VMIN);
 #endif
 #ifdef VSWTC
-    rb_define_const(mTermios, "VSWTC", INT2FIX(VSWTC));
+    define_flag(ccindex, VSWTC);
 #endif
 #ifdef VSTART
-    rb_define_const(mTermios, "VSTART", INT2FIX(VSTART));
+    define_flag(ccindex, VSTART);
 #endif
 #ifdef VSTOP
-    rb_define_const(mTermios, "VSTOP", INT2FIX(VSTOP));
+    define_flag(ccindex, VSTOP);
 #endif
 #ifdef VSUSP
-    rb_define_const(mTermios, "VSUSP", INT2FIX(VSUSP));
+    define_flag(ccindex, VSUSP);
 #endif
 #ifdef VEOL
-    rb_define_const(mTermios, "VEOL", INT2FIX(VEOL));
+    define_flag(ccindex, VEOL);
 #endif
 #ifdef VREPRINT
-    rb_define_const(mTermios, "VREPRINT", INT2FIX(VREPRINT));
+    define_flag(ccindex, VREPRINT);
 #endif
 #ifdef VDISCARD
-    rb_define_const(mTermios, "VDISCARD", INT2FIX(VDISCARD));
+    define_flag(ccindex, VDISCARD);
 #endif
 #ifdef VWERASE
-    rb_define_const(mTermios, "VWERASE", INT2FIX(VWERASE));
+    define_flag(ccindex, VWERASE);
 #endif
 #ifdef VLNEXT
-    rb_define_const(mTermios, "VLNEXT", INT2FIX(VLNEXT));
+    define_flag(ccindex, VLNEXT);
 #endif
 #ifdef VEOL2
-    rb_define_const(mTermios, "VEOL2", INT2FIX(VEOL2));
+    define_flag(ccindex, VEOL2);
 #endif
 
     /* c_iflag bits */
 #ifdef IGNBRK
-    rb_define_const(mTermios, "IGNBRK", INT2FIX(IGNBRK));
+    define_flag(iflags, IGNBRK);
 #endif
 #ifdef BRKINT
-    rb_define_const(mTermios, "BRKINT", INT2FIX(BRKINT));
+    define_flag(iflags, BRKINT);
 #endif
 #ifdef IGNPAR
-    rb_define_const(mTermios, "IGNPAR", INT2FIX(IGNPAR));
+    define_flag(iflags, IGNPAR);
 #endif
 #ifdef PARMRK
-    rb_define_const(mTermios, "PARMRK", INT2FIX(PARMRK));
+    define_flag(iflags, PARMRK);
 #endif
 #ifdef INPCK
-    rb_define_const(mTermios, "INPCK", INT2FIX(INPCK));
+    define_flag(iflags, INPCK);
 #endif
 #ifdef ISTRIP
-    rb_define_const(mTermios, "ISTRIP", INT2FIX(ISTRIP));
+    define_flag(iflags, ISTRIP);
 #endif
 #ifdef INLCR
-    rb_define_const(mTermios, "INLCR", INT2FIX(INLCR));
+    define_flag(iflags, INLCR);
 #endif
 #ifdef IGNCR
-    rb_define_const(mTermios, "IGNCR", INT2FIX(IGNCR));
+    define_flag(iflags, IGNCR);
 #endif
 #ifdef ICRNL
-    rb_define_const(mTermios, "ICRNL", INT2FIX(ICRNL));
+    define_flag(iflags, ICRNL);
 #endif
 #ifdef IUCLC
-    rb_define_const(mTermios, "IUCLC", INT2FIX(IUCLC));
+    define_flag(iflags, IUCLC);
 #endif
 #ifdef IXON
-    rb_define_const(mTermios, "IXON", INT2FIX(IXON));
+    define_flag(iflags, IXON);
 #endif
 #ifdef IXANY
-    rb_define_const(mTermios, "IXANY", INT2FIX(IXANY));
+    define_flag(iflags, IXANY);
 #endif
 #ifdef IXOFF
-    rb_define_const(mTermios, "IXOFF", INT2FIX(IXOFF));
+    define_flag(iflags, IXOFF);
 #endif
 #ifdef IMAXBEL
-    rb_define_const(mTermios, "IMAXBEL", INT2FIX(IMAXBEL));
+    define_flag(iflags, IMAXBEL);
 #endif
 
     /* c_oflag bits */
 #ifdef OPOST
-    rb_define_const(mTermios, "OPOST", INT2FIX(OPOST));
+    define_flag(oflags, OPOST);
 #endif
 #ifdef OLCUC
-    rb_define_const(mTermios, "OLCUC", INT2FIX(OLCUC));
+    define_flag(oflags, OLCUC);
 #endif
 #ifdef ONLCR
-    rb_define_const(mTermios, "ONLCR", INT2FIX(ONLCR));
+    define_flag(oflags, ONLCR);
 #endif
 #ifdef OCRNL
-    rb_define_const(mTermios, "OCRNL", INT2FIX(OCRNL));
+    define_flag(oflags, OCRNL);
 #endif
 #ifdef ONOCR
-    rb_define_const(mTermios, "ONOCR", INT2FIX(ONOCR));
+    define_flag(oflags, ONOCR);
 #endif
 #ifdef ONLRET
-    rb_define_const(mTermios, "ONLRET", INT2FIX(ONLRET));
+    define_flag(oflags, ONLRET);
 #endif
 #ifdef OFILL
-    rb_define_const(mTermios, "OFILL", INT2FIX(OFILL));
+    define_flag(oflags, OFILL);
 #endif
 #ifdef OFDEL
-    rb_define_const(mTermios, "OFDEL", INT2FIX(OFDEL));
+    define_flag(oflags, OFDEL);
 #endif
 #ifdef NLDLY
-    rb_define_const(mTermios, "NLDLY", INT2FIX(NLDLY));
+    define_flag(oflags, NLDLY);
 #endif
 #ifdef NL0
-    rb_define_const(mTermios, "NL0", INT2FIX(NL0));
+    define_flag(oflags, NL0);
 #endif
 #ifdef NL1
-    rb_define_const(mTermios, "NL1", INT2FIX(NL1));
+    define_flag(oflags, NL1);
 #endif
 #ifdef CRDLY
-    rb_define_const(mTermios, "CRDLY", INT2FIX(CRDLY));
+    define_flag(oflags, CRDLY);
 #endif
 #ifdef CR0
-    rb_define_const(mTermios, "CR0", INT2FIX(CR0));
+    define_flag(oflags, CR0);
 #endif
 #ifdef CR1
-    rb_define_const(mTermios, "CR1", INT2FIX(CR1));
+    define_flag(oflags, CR1);
 #endif
 #ifdef CR2
-    rb_define_const(mTermios, "CR2", INT2FIX(CR2));
+    define_flag(oflags, CR2);
 #endif
 #ifdef CR3
-    rb_define_const(mTermios, "CR3", INT2FIX(CR3));
+    define_flag(oflags, CR3);
 #endif
 #ifdef TABDLY
-    rb_define_const(mTermios, "TABDLY", INT2FIX(TABDLY));
+    define_flag(oflags, TABDLY);
 #endif
 #ifdef TAB0
-    rb_define_const(mTermios, "TAB0", INT2FIX(TAB0));
+    define_flag(oflags, TAB0);
 #endif
 #ifdef TAB1
-    rb_define_const(mTermios, "TAB1", INT2FIX(TAB1));
+    define_flag(oflags, TAB1);
 #endif
 #ifdef TAB2
-    rb_define_const(mTermios, "TAB2", INT2FIX(TAB2));
+    define_flag(oflags, TAB2);
 #endif
 #ifdef TAB3
-    rb_define_const(mTermios, "TAB3", INT2FIX(TAB3));
+    define_flag(oflags, TAB3);
 #endif
 #ifdef XTABS
-    rb_define_const(mTermios, "XTABS", INT2FIX(XTABS));
+    define_flag(oflags, XTABS);
 #endif
 #ifdef BSDLY
-    rb_define_const(mTermios, "BSDLY", INT2FIX(BSDLY));
+    define_flag(oflags, BSDLY);
 #endif
 #ifdef BS0
-    rb_define_const(mTermios, "BS0", INT2FIX(BS0));
+    define_flag(oflags, BS0);
 #endif
 #ifdef BS1
-    rb_define_const(mTermios, "BS1", INT2FIX(BS1));
+    define_flag(oflags, BS1);
 #endif
 #ifdef VTDLY
-    rb_define_const(mTermios, "VTDLY", INT2FIX(VTDLY));
+    define_flag(oflags, VTDLY);
 #endif
 #ifdef VT0
-    rb_define_const(mTermios, "VT0", INT2FIX(VT0));
+    define_flag(oflags, VT0);
 #endif
 #ifdef VT1
-    rb_define_const(mTermios, "VT1", INT2FIX(VT1));
+    define_flag(oflags, VT1);
 #endif
 #ifdef FFDLY
-    rb_define_const(mTermios, "FFDLY", INT2FIX(FFDLY));
+    define_flag(oflags, FFDLY);
 #endif
 #ifdef FF0
-    rb_define_const(mTermios, "FF0", INT2FIX(FF0));
+    define_flag(oflags, FF0);
 #endif
 #ifdef FF1
-    rb_define_const(mTermios, "FF1", INT2FIX(FF1));
+    define_flag(oflags, FF1);
 #endif
 
     /* c_cflag bit meaning */
 #ifdef CBAUD
-    rb_define_const(mTermios, "CBAUD", INT2FIX(CBAUD));
+    define_flag(cflags, CBAUD);
 #endif
 #ifdef B0
-    rb_define_const(mTermios, "B0", INT2FIX(B0));
+    define_flag(baud, B0);
 #endif
 #ifdef B50
-    rb_define_const(mTermios, "B50", INT2FIX(B50));
+    define_flag(baud, B50);
 #endif
 #ifdef B75
-    rb_define_const(mTermios, "B75", INT2FIX(B75));
+    define_flag(baud, B75);
 #endif
 #ifdef B110
-    rb_define_const(mTermios, "B110", INT2FIX(B110));
+    define_flag(baud, B110);
 #endif
 #ifdef B134
-    rb_define_const(mTermios, "B134", INT2FIX(B134));
+    define_flag(baud, B134);
 #endif
 #ifdef B150
-    rb_define_const(mTermios, "B150", INT2FIX(B150));
+    define_flag(baud, B150);
 #endif
 #ifdef B200
-    rb_define_const(mTermios, "B200", INT2FIX(B200));
+    define_flag(baud, B200);
 #endif
 #ifdef B300
-    rb_define_const(mTermios, "B300", INT2FIX(B300));
+    define_flag(baud, B300);
 #endif
 #ifdef B600
-    rb_define_const(mTermios, "B600", INT2FIX(B600));
+    define_flag(baud, B600);
 #endif
 #ifdef B1200
-    rb_define_const(mTermios, "B1200", INT2FIX(B1200));
+    define_flag(baud, B1200);
 #endif
 #ifdef B1800
-    rb_define_const(mTermios, "B1800", INT2FIX(B1800));
+    define_flag(baud, B1800);
 #endif
 #ifdef B2400
-    rb_define_const(mTermios, "B2400", INT2FIX(B2400));
+    define_flag(baud, B2400);
 #endif
 #ifdef B4800
-    rb_define_const(mTermios, "B4800", INT2FIX(B4800));
+    define_flag(baud, B4800);
 #endif
 #ifdef B9600
-    rb_define_const(mTermios, "B9600", INT2FIX(B9600));
+    define_flag(baud, B9600);
 #endif
 #ifdef B19200
-    rb_define_const(mTermios, "B19200", INT2FIX(B19200));
+    define_flag(baud, B19200);
 #endif
 #ifdef B38400
-    rb_define_const(mTermios, "B38400", INT2FIX(B38400));
+    define_flag(baud, B38400);
 #endif
 #ifdef EXTA
-    rb_define_const(mTermios, "EXTA", INT2FIX(EXTA));
+    define_flag(cflags, EXTA);
 #endif
 #ifdef EXTB
-    rb_define_const(mTermios, "EXTB", INT2FIX(EXTB));
+    define_flag(cflags, EXTB);
 #endif
 #ifdef CSIZE
-    rb_define_const(mTermios, "CSIZE", INT2FIX(CSIZE));
+    define_flag(cflags, CSIZE);
 #endif
 #ifdef CS5
-    rb_define_const(mTermios, "CS5", INT2FIX(CS5));
+    define_flag(cflags, CS5);
 #endif
 #ifdef CS6
-    rb_define_const(mTermios, "CS6", INT2FIX(CS6));
+    define_flag(cflags, CS6);
 #endif
 #ifdef CS7
-    rb_define_const(mTermios, "CS7", INT2FIX(CS7));
+    define_flag(cflags, CS7);
 #endif
 #ifdef CS8
-    rb_define_const(mTermios, "CS8", INT2FIX(CS8));
+    define_flag(cflags, CS8);
 #endif
 #ifdef CSTOPB
-    rb_define_const(mTermios, "CSTOPB", INT2FIX(CSTOPB));
+    define_flag(cflags, CSTOPB);
 #endif
 #ifdef CREAD
-    rb_define_const(mTermios, "CREAD", INT2FIX(CREAD));
+    define_flag(cflags, CREAD);
 #endif
 #ifdef PARENB
-    rb_define_const(mTermios, "PARENB", INT2FIX(PARENB));
+    define_flag(cflags, PARENB);
 #endif
 #ifdef PARODD
-    rb_define_const(mTermios, "PARODD", INT2FIX(PARODD));
+    define_flag(cflags, PARODD);
 #endif
 #ifdef HUPCL
-    rb_define_const(mTermios, "HUPCL", INT2FIX(HUPCL));
+    define_flag(cflags, HUPCL);
 #endif
 #ifdef CLOCAL
-    rb_define_const(mTermios, "CLOCAL", INT2FIX(CLOCAL));
+    define_flag(cflags, CLOCAL);
 #endif
 #ifdef CBAUDEX
-    rb_define_const(mTermios, "CBAUDEX", INT2FIX(CBAUDEX));
+    define_flag(cflags, CBAUDEX);
 #endif
 #ifdef B57600
-    rb_define_const(mTermios, "B57600", INT2FIX(B57600));
+    define_flag(baud, B57600);
 #endif
 #ifdef B115200
-    rb_define_const(mTermios, "B115200", INT2FIX(B115200));
+    define_flag(baud, B115200);
 #endif
 #ifdef B230400
-    rb_define_const(mTermios, "B230400", INT2FIX(B230400));
+    define_flag(baud, B230400);
 #endif
 #ifdef B460800
-    rb_define_const(mTermios, "B460800", INT2FIX(B460800));
+    define_flag(baud, B460800);
 #endif
 #ifdef CIBAUD
-    rb_define_const(mTermios, "CIBAUD", INT2FIX(CIBAUD));
+    define_flag(cflags, CIBAUD);
 #endif
 #ifdef CRTSCTS
-    rb_define_const(mTermios, "CRTSCTS", INT2FIX(CRTSCTS));
+    define_flag(cflags, CRTSCTS);
 #endif
 
     /* c_lflag bits */
 #ifdef ISIG
-    rb_define_const(mTermios, "ISIG", INT2FIX(ISIG));
+    define_flag(lflags, ISIG);
 #endif
 #ifdef ICANON
-    rb_define_const(mTermios, "ICANON", INT2FIX(ICANON));
+    define_flag(lflags, ICANON);
 #endif
 #ifdef XCASE
-    rb_define_const(mTermios, "XCASE", INT2FIX(XCASE));
+    define_flag(lflags, XCASE);
 #endif
 #ifdef ECHO
-    rb_define_const(mTermios, "ECHO", INT2FIX(ECHO));
+    define_flag(lflags, ECHO);
 #endif
 #ifdef ECHOE
-    rb_define_const(mTermios, "ECHOE", INT2FIX(ECHOE));
+    define_flag(lflags, ECHOE);
 #endif
 #ifdef ECHOK
-    rb_define_const(mTermios, "ECHOK", INT2FIX(ECHOK));
+    define_flag(lflags, ECHOK);
 #endif
 #ifdef ECHONL
-    rb_define_const(mTermios, "ECHONL", INT2FIX(ECHONL));
+    define_flag(lflags, ECHONL);
 #endif
 #ifdef NOFLSH
-    rb_define_const(mTermios, "NOFLSH", INT2FIX(NOFLSH));
+    define_flag(lflags, NOFLSH);
 #endif
 #ifdef TOSTOP
-    rb_define_const(mTermios, "TOSTOP", INT2FIX(TOSTOP));
+    define_flag(lflags, TOSTOP);
 #endif
 #ifdef ECHOCTL
-    rb_define_const(mTermios, "ECHOCTL", INT2FIX(ECHOCTL));
+    define_flag(lflags, ECHOCTL);
 #endif
 #ifdef ECHOPRT
-    rb_define_const(mTermios, "ECHOPRT", INT2FIX(ECHOPRT));
+    define_flag(lflags, ECHOPRT);
 #endif
 #ifdef ECHOKE
-    rb_define_const(mTermios, "ECHOKE", INT2FIX(ECHOKE));
+    define_flag(lflags, ECHOKE);
 #endif
 #ifdef FLUSHO
-    rb_define_const(mTermios, "FLUSHO", INT2FIX(FLUSHO));
+    define_flag(lflags, FLUSHO);
 #endif
 #ifdef PENDIN
-    rb_define_const(mTermios, "PENDIN", INT2FIX(PENDIN));
+    define_flag(lflags, PENDIN);
 #endif
 #ifdef IEXTEN
-    rb_define_const(mTermios, "IEXTEN", INT2FIX(IEXTEN));
+    define_flag(lflags, IEXTEN);
 #endif
 
     /* tcflow() and TCXONC use these */

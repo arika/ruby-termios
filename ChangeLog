@@ -1,3 +1,17 @@
+2002-10-12  akira yamada  <akira@arika.org>
+
+	* termios.c
+	(termios_cc): accepts index of c_cc.
+	(termios_set_a_cc): new function for Termios::Termios#set_cc.
+	(Init_termios): added new constants Termios::CCINDEX, Termios::IFLAGS,
+	Termios::OFLAGS, Termios::CFLAGS, Termios::LFLAGS and Termios::BAUD.
+
+	* examples/modem_check.rb: it did not work. rewrited.
+
+	* test/test0.rb: rewrited.
+
+	* version 0.9.2.
+
 2002-10-10  akira yamada  <akira@arika.org>
 
 	* termios.c
