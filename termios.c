@@ -2,7 +2,7 @@
 
   a termios library for Ruby 1.2.
   Copyright (C) 1999,2000 akira yamada.
-  $Id: termios.c,v 1.1 2000-11-15 10:09:17 akira Exp $
+  $Id: termios.c,v 1.1.1.1 2000-11-15 10:09:17 akira Exp $
 
  */
 
