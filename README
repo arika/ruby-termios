@@ -14,7 +14,8 @@ the methods can use as module function.
 Requires
 --------
 
-  * Ruby 1.6 (or later)
+  * Ruby 1.6.x or 1.8 (Ruby-termios can build with Ruby 1.8 but it has not
+    yet been tested enough.)
 
 
 Installation
