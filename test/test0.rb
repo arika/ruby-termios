@@ -2,7 +2,7 @@ require 'termios'
 
 def dump_termios(tio, banner)
   puts banner
-  puts "  ispeed = #{Termios::BAUD[tio.ispeed]}, ospeed = #{Termios::BAUD[tio.ospeed]}"
+  puts "  ispeed = #{Termios::BAUDS[tio.ispeed]}, ospeed = #{Termios::BAUDS[tio.ospeed]}"
   ["iflag", "oflag", "cflag", "lflag"].each do |x|
     flag = tio.send(x)
     flags = []
@@ -19,7 +19,10 @@ def dump_termios(tio, banner)
   puts
 end
 
-dump_termios(Termios::getattr($stdin), "STDIN:")
+tio = Termios::getattr($stdin)
+dump_termios(tio, "STDIN:")
+Termios::setattr($stdin, Termios::TCSANOW, tio)
+dump_termios(tio, "STDIN:")
 
 puts
 puts " pid = #{$$}"

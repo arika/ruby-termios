@@ -2,7 +2,7 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.6 2002-10-12 09:53:29 akira Exp $
+  $Id: termios.c,v 1.7 2002-10-12 14:17:29 akira Exp $
 
  */
 
@@ -14,24 +14,173 @@
 
 static VALUE mTermios;
 static VALUE cTermios;
+static VALUE tcsetattr_opt, tcflush_qs, tcflow_act;
+static ID id_iflag, id_oflag, id_cflag, id_lflag, id_cc, id_ispeed, id_ospeed;
+static ID id_to_i;
 
-static void
-free_termios(t)
-    struct termios *t;
+static VALUE
+termios_set_iflag(self, value)
+    VALUE self, value;
 {
-    if (t) {
-	free(t);
-    }
+    Check_Type(value, T_FIXNUM);
+    rb_ivar_set(self, id_iflag, value);
+
+    return value;
 }
 
-static struct termios *
-Termios_to_termios(obj)
-    VALUE obj;
+static VALUE
+termios_set_oflag(self, value)
+    VALUE self, value;
 {
-    struct termios *t;
-    Data_Get_Struct(obj, struct termios, t);
+    Check_Type(value, T_FIXNUM);
+    rb_ivar_set(self, id_oflag, value);
 
-    return t;
+    return value;
+}
+
+static VALUE
+termios_set_cflag(self, value)
+    VALUE self, value;
+{
+    Check_Type(value, T_FIXNUM);
+    rb_ivar_set(self, id_cflag, value);
+
+    return value;
+}
+
+static VALUE
+termios_set_lflag(self, value)
+    VALUE self, value;
+{
+    Check_Type(value, T_FIXNUM);
+    rb_ivar_set(self, id_lflag, value);
+
+    return value;
+}
+
+static VALUE
+termios_set_cc(self, value)
+    VALUE self, value;
+{
+    Check_Type(value, T_ARRAY);
+    rb_ivar_set(self, id_cc, value);
+
+    return value;
+}
+
+static VALUE
+termios_set_ispeed(self, value)
+    VALUE self, value;
+{
+    Check_Type(value, T_FIXNUM);
+    rb_ivar_set(self, id_ospeed, value);
+
+    return value;
+}
+
+static VALUE
+termios_set_ospeed(self, value)
+    VALUE self, value;
+{
+    Check_Type(value, T_FIXNUM);
+    rb_ivar_set(self, id_ospeed, value);
+
+    return value;
+}
+
+static VALUE
+termios_initialize(argc, argv, self)
+    int argc;
+    VALUE *argv;
+    VALUE self;
+{
+    VALUE c_iflag, c_oflag, c_cflag, c_lflag, c_cc, c_ispeed, c_ospeed;
+    VALUE cc_ary;
+
+    cc_ary = rb_ary_new2(NCCS);
+
+    rb_ivar_set(self, id_iflag,  Qnil);
+    rb_ivar_set(self, id_oflag,  Qnil);
+    rb_ivar_set(self, id_cflag,  Qnil);
+    rb_ivar_set(self, id_lflag,  Qnil);
+    rb_ivar_set(self, id_cc,     cc_ary);
+    rb_ivar_set(self, id_ispeed, Qnil);
+    rb_ivar_set(self, id_ospeed, Qnil);
+
+    rb_scan_args(argc, argv, "07", 
+		 &c_iflag, &c_oflag, &c_cflag, &c_lflag, 
+		 &c_cc, &c_ispeed, &c_ospeed);
+
+    if (!NIL_P(c_iflag))
+	termios_set_iflag(self, c_iflag);
+
+    if (!NIL_P(c_oflag))
+	termios_set_oflag(self, c_oflag);
+
+    if (!NIL_P(c_cflag))
+	termios_set_cflag(self, c_cflag);
+
+    if (!NIL_P(c_lflag))
+	termios_set_lflag(self, c_lflag);
+
+    if (!NIL_P(c_cc))
+	termios_set_cc(self, c_cc);
+
+    if (!NIL_P(c_ispeed))
+	termios_set_ispeed(self, c_ispeed);
+
+    if (!NIL_P(c_ospeed))
+	termios_set_ispeed(self, c_ospeed);
+
+    return self;
+}
+
+static VALUE
+termios_to_Termios(t)
+    struct termios *t;
+{
+    int i;
+    VALUE obj, cc_ary;
+
+    obj = rb_funcall(cTermios, rb_intern("new"), 0);
+
+    termios_set_iflag(obj, INT2FIX(t->c_iflag));
+    termios_set_oflag(obj, INT2FIX(t->c_oflag));
+    termios_set_cflag(obj, INT2FIX(t->c_cflag));
+    termios_set_lflag(obj, INT2FIX(t->c_lflag));
+
+    cc_ary = rb_ary_new2(NCCS);
+    for (i = 0; i < NCCS; i++) {
+	rb_ary_store(cc_ary, i, INT2FIX(t->c_cc[i]));
+    }
+    termios_set_cc(obj, cc_ary);
+
+    termios_set_ispeed(obj, INT2FIX(cfgetispeed(t)));
+    termios_set_ospeed(obj, INT2FIX(cfgetospeed(t)));
+
+    return obj;
+}
+
+static void
+Termios_to_termios(obj, t)
+    VALUE obj;
+    struct termios *t;
+{
+    int i;
+    VALUE cc_ary;
+
+    t->c_iflag = FIX2INT(rb_ivar_get(obj, id_iflag));
+    t->c_oflag = FIX2INT(rb_ivar_get(obj, id_oflag));
+    t->c_cflag = FIX2INT(rb_ivar_get(obj, id_cflag));
+    t->c_lflag = FIX2INT(rb_ivar_get(obj, id_lflag));
+
+    cc_ary = rb_ivar_get(obj, id_cc);
+    for (i = 0; i < NCCS; i++) {
+	t->c_cc[i] = NUM2INT(rb_funcall(RARRAY(cc_ary)->ptr[i], id_to_i, 0));
+    }
+
+    cfsetispeed(t, FIX2INT(rb_ivar_get(obj, id_ispeed)));
+    cfsetospeed(t, FIX2INT(rb_ivar_get(obj, id_ospeed)));
 }
 
 
@@ -39,19 +188,17 @@ static VALUE
 termios_tcgetattr(io)
     VALUE io;
 {
-    struct termios *t;
+    struct termios t;
     OpenFile *fptr;
-    VALUE obj;
 
-    obj = Data_Make_Struct(cTermios, struct termios, 0, free_termios, t);
-
+    Check_Type(io, T_FILE);
     GetOpenFile(io, fptr);
-    if (tcgetattr(fileno(fptr->f), t) < 0) {
+    if (tcgetattr(fileno(fptr->f), &t) < 0) {
 	rb_raise(rb_eRuntimeError, 
 		 "can't get terminal parameters (%s)", strerror(errno));
     }
 
-    return obj;
+    return termios_to_Termios(&t);
 }
 
 static VALUE
@@ -67,21 +214,28 @@ termios_tcsetattr(io, opt, param)
 {
     VALUE old;
     OpenFile *fptr;
-    struct termios *t;
+    struct termios t;
+    int tcsetattr_option;
 
     Check_Type(io,  T_FILE);
     Check_Type(opt, T_FIXNUM);
     if (CLASS_OF(param) != cTermios) {
 	char *type = rb_class2name(CLASS_OF(param));
-	rb_raise(rb_eTypeError, 
-		 "wrong argument type %s (expected Struct::Termios)", 
+	rb_raise(rb_eArgError, 
+		 "wrong argument type %s (expected Termios::Termios)", 
 		 type);
+    }
+
+    tcsetattr_option = FIX2INT(opt);
+    if (rb_ary_includes(tcsetattr_opt, opt) != Qtrue) {
+	rb_raise(rb_eArgError, 
+		 "wrong option value %d", tcsetattr_option);
     }
 
     old = termios_tcgetattr(io);
     GetOpenFile(io, fptr);
-    t = Termios_to_termios(param);
-    if (tcsetattr(fileno(fptr->f), FIX2INT(opt), t) < 0) {
+    Termios_to_termios(param, &t);
+    if (tcsetattr(fileno(fptr->f), tcsetattr_option, &t) < 0) {
 	rb_raise(rb_eRuntimeError,
 		 "can't set terminal parameters (%s)", strerror(errno));
     }
@@ -154,12 +308,9 @@ termios_tcflush(io, qs)
     Check_Type(io, T_FILE);
     Check_Type(qs, T_FIXNUM);
     queue_selector = FIX2INT(qs);
-    if (queue_selector != TCIFLUSH &&
-	queue_selector != TCOFLUSH &&
-	queue_selector != TCIOFLUSH) {
+    if (rb_ary_includes(tcflush_qs, qs) != Qtrue) {
 	rb_raise(rb_eTypeError, 
-		 "wrong argument value %s (expected Termios::TCIFLUSH, Termios::TCOFLUSH or Termios::TCIOFLUSH)", 
-		 queue_selector);
+		 "wrong queue-selector value %d", queue_selector);
     }
 
     GetOpenFile(io, fptr);
@@ -187,13 +338,9 @@ termios_tcflow(io, act)
     Check_Type(io,  T_FILE);
     Check_Type(act, T_FIXNUM);
     action = FIX2INT(act);
-    if (action != TCOOFF &&
-	action != TCOON &&
-	action != TCIOFF &&
-	action != TCION) {
-	rb_raise(rb_eTypeError, 
-		 "wrong argument value %s (expected Termios::TCOOFF, Termios::TCOON, Termios::TCIOFF or Termios::TCION)", 
-		 action);
+    if (rb_ary_includes(tcflow_act, act) != Qtrue) {
+	rb_raise(rb_eArgError, 
+		 "wrong action value %d", action);
     }
 
     GetOpenFile(io, fptr);
@@ -262,319 +409,20 @@ termios_s_tcsetpgrp(obj, io, pgrpid)
 }
 
 static VALUE
-termios_s_new(argc, argv, io)
+termios_s_newtermios(argc, argv, klass)
     int argc;
     VALUE *argv;
-    VALUE io;
+    VALUE klass;
 {
-    VALUE obj, c_iflag, c_oflag, c_cflag, c_lflag, c_cc, c_ispeed, c_ospeed;
-    int i;
-    struct termios *t;
-
-    rb_scan_args(argc, argv, "07", 
-		 &c_iflag, &c_oflag, &c_cflag, &c_lflag, 
-		 &c_cc, &c_ispeed, &c_ospeed);
-
-    obj = Data_Make_Struct(cTermios, struct termios, 0, free_termios, t);
-
-    if (NIL_P(c_iflag)) {
-	t->c_iflag = 0;
-    }
-    else {
-	Check_Type(c_iflag, T_FIXNUM);
-	t->c_iflag = FIX2INT(c_iflag);
-    }
-
-    if (NIL_P(c_iflag)) {
-	t->c_oflag = 0;
-    }
-    else {
-	Check_Type(c_oflag, T_FIXNUM);
-	t->c_oflag = FIX2INT(c_oflag);
-    }
-
-    if (NIL_P(c_iflag)) {
-	t->c_cflag = 0;
-    }
-    else {
-	Check_Type(c_cflag, T_FIXNUM);
-	t->c_cflag = FIX2INT(c_cflag);
-    }
-
-    if (NIL_P(c_iflag)) {
-	t->c_lflag = 0;
-    }
-    else {
-	Check_Type(c_lflag, T_FIXNUM);
-	t->c_lflag = FIX2INT(c_lflag);
-    }
-
-    if (NIL_P(c_cc)) {
-	for (i = 0; i < NCCS; i++) {
-	    t->c_cc[i] = 0;
-	}
-    }
-    else {
-	Check_Type(c_cc, T_ARRAY);
-	for (i = 0; i < NCCS && i < RARRAY(c_cc)->len; i++) {
-	    t->c_cc[i] = FIX2INT(RARRAY(c_cc)->ptr[i]);
-	}
-    }
-
-    if (NIL_P(c_iflag)) {
-	cfsetispeed(t, 0);
-    }
-    else {
-	Check_Type(c_ispeed, T_FIXNUM);
-	cfsetispeed(t, FIX2INT(c_ispeed));
-    }
-
-    if (NIL_P(c_iflag)) {
-	cfsetospeed(t, 0);
-    }
-    else {
-	Check_Type(c_ospeed, T_FIXNUM);
-	cfsetospeed(t, FIX2INT(c_ospeed));
-    }
-
-    return obj;
-}
-
-static VALUE
-termios_iflag(self)
-    VALUE self;
-{
-    struct termios *t;
-
-    Data_Get_Struct(self, struct termios, t);
-    return INT2FIX(t->c_iflag);
-}
-
-static VALUE
-termios_set_iflag(self, value)
-    VALUE self, value;
-{
-    struct termios *t;
-
-    Check_Type(value, T_FIXNUM);
-    Data_Get_Struct(self, struct termios, t);
-    t->c_iflag = FIX2INT(value);
-
-    return value;
-}
-
-static VALUE
-termios_oflag(self)
-    VALUE self;
-{
-    struct termios *t;
-
-    Data_Get_Struct(self, struct termios, t);
-    return INT2FIX(t->c_oflag);
-}
-
-static VALUE
-termios_set_oflag(self, value)
-    VALUE self, value;
-{
-    struct termios *t;
-
-    Check_Type(value, T_FIXNUM);
-    Data_Get_Struct(self, struct termios, t);
-    t->c_oflag = FIX2INT(value);
-
-    return value;
-}
-
-static VALUE
-termios_cflag(self)
-    VALUE self;
-{
-    struct termios *t;
-
-    Data_Get_Struct(self, struct termios, t);
-    return INT2FIX(t->c_cflag);
-}
-
-static VALUE
-termios_set_cflag(self, value)
-    VALUE self, value;
-{
-    struct termios *t;
-
-    Check_Type(value, T_FIXNUM);
-    Data_Get_Struct(self, struct termios, t);
-    t->c_cflag = FIX2INT(value);
-
-    return value;
-}
-
-static VALUE
-termios_lflag(self)
-    VALUE self;
-{
-    struct termios *t;
-
-    Data_Get_Struct(self, struct termios, t);
-    return INT2FIX(t->c_lflag);
-}
-
-static VALUE
-termios_set_lflag(self, value)
-    VALUE self, value;
-{
-    struct termios *t;
-
-    Check_Type(value, T_FIXNUM);
-    Data_Get_Struct(self, struct termios, t);
-    t->c_lflag = FIX2INT(value);
-
-    return value;
-}
-
-static VALUE
-termios_cc(argc, argv, self)
-    int argc;
-    VALUE *argv;
-    VALUE self;
-{
-    int i;
-    struct termios *t;
-    VALUE ret, index;
-
-    rb_scan_args(argc, argv, "01", &index);
-    Data_Get_Struct(self, struct termios, t);
-
-    if (NIL_P(index)) {
-      ret = rb_ary_new2(NCCS);
-      for (i = 0; i < NCCS; i++) {
-  	  rb_ary_push(ret, INT2FIX(t->c_cc[i]));
-      }
-    }
-    else {
-      Check_Type(index, T_FIXNUM);
-      i = NUM2INT(index);
-      if (i < 0 || NCCS <= i) {
-	rb_raise(rb_eArgError, "bad number for control charcters");
-      }
-
-      ret = INT2NUM(t->c_cc[i]);
-    }
-
-    return ret;
-}
-
-static VALUE
-termios_set_cc(self, value)
-    VALUE self, value;
-{
-    int i;
-    struct termios *t;
-
-    Check_Type(value, T_ARRAY);
-    Data_Get_Struct(self, struct termios, t);
-    for (i = 0; i < NCCS && i < RARRAY(value)->len; i++) {
-	t->c_cc[i] = FIX2INT(RARRAY(value)->ptr[i]);
-    }
-
-    return value;
-}
-
-static VALUE
-termios_set_a_cc(argc, argv, self)
-    int argc;
-    VALUE *argv;
-    VALUE self;
-{
-    VALUE index, value;
-    struct termios *t;
-    int i;
-
-    rb_scan_args(argc, argv, "11", &index, &value);
-    if (NIL_P(value)) {
-      Check_Type(index, T_ARRAY);
-      value = termios_set_cc(self, index);
-    }
-    else {
-      Check_Type(index, T_FIXNUM);
-      Check_Type(value, T_FIXNUM);
-
-      i = NUM2INT(index);
-      if (i < 0 || NCCS <= i) {
-	rb_raise(rb_eArgError, "bad number for control charcters");
-      }
-
-      Data_Get_Struct(self, struct termios, t);
-      t->c_cc[i] = NUM2INT(value);
-    }
-
-    return value;
-}
-
-static VALUE
-termios_ispeed(self)
-    VALUE self;
-{
-    struct termios *t;
-
-    Data_Get_Struct(self, struct termios, t);
-    return INT2FIX(cfgetispeed(t));
-}
-
-static VALUE
-termios_set_ispeed(self, value)
-    VALUE self, value;
-{
-    struct termios *t;
-
-    Check_Type(value, T_FIXNUM);
-    Data_Get_Struct(self, struct termios, t);
-    cfsetispeed(t, FIX2INT(value));
-
-    return value;
-}
-
-static VALUE
-termios_ospeed(self)
-    VALUE self;
-{
-    struct termios *t;
-
-    Data_Get_Struct(self, struct termios, t);
-    return INT2FIX(cfgetospeed(t));
-}
-
-static VALUE
-termios_set_ospeed(self, value)
-    VALUE self, value;
-{
-    struct termios *t;
-
-    Check_Type(value, T_FIXNUM);
-    Data_Get_Struct(self, struct termios, t);
-    cfsetospeed(t, FIX2INT(value));
-
-    return value;
-}
-
-static VALUE
-termios_clone(self)
-    VALUE self;
-{
-    struct termios *old, *new;
-    VALUE obj;
-
-    obj = Data_Make_Struct(cTermios, struct termios, 0, free_termios, new);
-    Data_Get_Struct(self, struct termios, old);
-    memcpy(new, old, sizeof(struct termios));
-
-    return obj;
+    return rb_funcall2(cTermios, rb_intern("new"), argc, argv);
 }
 
 void
 Init_termios()
 {
-    VALUE ccindex, iflags, oflags, cflags, lflags, baud;
+    VALUE ccindex, iflags, oflags, cflags, lflags, bauds;
+
+    id_to_i     = rb_intern("to_i");
 
     /* module Termios */
 
@@ -612,51 +460,52 @@ Init_termios()
     rb_define_module_function(mTermios,  "setpgrp",  termios_s_tcsetpgrp,  2);
     rb_define_method(mTermios,         "tcsetpgrp",  termios_s_tcsetpgrp,  1);
 
-    rb_define_module_function(mTermios,"new_termios",termios_s_new,       -1);
+    rb_define_module_function(mTermios,"new_termios",termios_s_newtermios, -1);
 
     /* class Termios::Termios */
 
     cTermios = rb_define_class_under(mTermios, "Termios", rb_cObject);
 
-    rb_define_singleton_method(cTermios, "new", termios_s_new, -1);
+    id_iflag  = rb_intern("@iflag");
+    id_oflag  = rb_intern("@oflag");
+    id_cflag  = rb_intern("@cflag");
+    id_lflag  = rb_intern("@lflag");
+    id_cc     = rb_intern("@cc");
+    id_ispeed = rb_intern("@ispeed");
+    id_ospeed = rb_intern("@ospeed");
 
-    rb_define_method(cTermios,   "iflag",   termios_iflag,      0);
-    rb_define_method(cTermios, "c_iflag",   termios_iflag,      0);
-    rb_define_method(cTermios,   "iflag=",  termios_set_iflag,  1);
-    rb_define_method(cTermios, "c_iflag=",  termios_set_iflag,  1);
+    rb_attr(cTermios, rb_intern("iflag"),  1, 0, Qtrue);
+    rb_attr(cTermios, rb_intern("oflag"),  1, 0, Qtrue);
+    rb_attr(cTermios, rb_intern("cflag"),  1, 0, Qtrue);
+    rb_attr(cTermios, rb_intern("lflag"),  1, 0, Qtrue);
+    rb_attr(cTermios, rb_intern("cc"),     1, 0, Qtrue);
+    rb_attr(cTermios, rb_intern("ispeed"), 1, 0, Qtrue);
+    rb_attr(cTermios, rb_intern("ospeed"), 1, 0, Qtrue);
 
-    rb_define_method(cTermios,   "oflag",   termios_oflag,      0);
-    rb_define_method(cTermios, "c_oflag",   termios_oflag,      0);
-    rb_define_method(cTermios,   "oflag=",  termios_set_oflag,  1);
-    rb_define_method(cTermios, "c_oflag=",  termios_set_oflag,  1);
+    rb_define_private_method(cTermios, "initialize", termios_initialize, -1);
 
-    rb_define_method(cTermios,   "cflag",   termios_cflag,      0);
-    rb_define_method(cTermios, "c_cflag",   termios_cflag,      0);
-    rb_define_method(cTermios,   "cflag=",  termios_set_cflag,  1);
-    rb_define_method(cTermios, "c_cflag=",  termios_set_cflag,  1);
+    rb_define_method(cTermios, "iflag=",  termios_set_iflag,  1);
+    rb_define_method(cTermios, "oflag=",  termios_set_oflag,  1);
+    rb_define_method(cTermios, "cflag=",  termios_set_cflag,  1);
+    rb_define_method(cTermios, "lflag=",  termios_set_lflag,  1);
+    rb_define_method(cTermios, "cc=",     termios_set_cc,     1);
+    rb_define_method(cTermios, "ispeed=", termios_set_ispeed, 1);
+    rb_define_method(cTermios, "ospeed=", termios_set_ospeed, 1);
 
-    rb_define_method(cTermios,   "lflag",   termios_lflag,      0);
-    rb_define_method(cTermios, "c_lflag",   termios_lflag,      0);
-    rb_define_method(cTermios,   "lflag=",  termios_set_lflag,  1);
-    rb_define_method(cTermios, "c_lflag=",  termios_set_lflag,  1);
-
-    rb_define_method(cTermios,   "cc",      termios_cc,         -1);
-    rb_define_method(cTermios, "c_cc",      termios_cc,         -1);
-    rb_define_method(cTermios,   "cc=",     termios_set_cc,     1);
-    rb_define_method(cTermios, "c_cc=",     termios_set_cc,     1);
-    rb_define_method(cTermios, "set_cc",    termios_set_a_cc,   -1);
-
-    rb_define_method(cTermios,   "ispeed",  termios_ispeed,     0);
-    rb_define_method(cTermios, "c_ispeed",  termios_ispeed,     0);
-    rb_define_method(cTermios,   "ispeed=", termios_set_ispeed, 1);
-    rb_define_method(cTermios, "c_ispeed=", termios_set_ispeed, 1);
-
-    rb_define_method(cTermios,   "ospeed",  termios_ospeed,     0);
-    rb_define_method(cTermios, "c_ospeed",  termios_ospeed,     0);
-    rb_define_method(cTermios,   "ospeed=", termios_set_ospeed, 1);
-    rb_define_method(cTermios, "c_ospeed=", termios_set_ospeed, 1);
-
-    rb_define_method(cTermios, "clone",     termios_clone,      0);
+    rb_define_alias(cTermios, "c_iflag",   "iflag");
+    rb_define_alias(cTermios, "c_iflag=",  "iflag=");
+    rb_define_alias(cTermios, "c_oflag",   "oflag");
+    rb_define_alias(cTermios, "c_oflag=",  "oflag=");
+    rb_define_alias(cTermios, "c_cflag",   "cflag");
+    rb_define_alias(cTermios, "c_cflag=",  "cflag=");
+    rb_define_alias(cTermios, "c_lflag",   "lflag");
+    rb_define_alias(cTermios, "c_lflag=",  "lflag=");
+    rb_define_alias(cTermios, "c_cc",      "cc");
+    rb_define_alias(cTermios, "c_cc=",     "cc=");
+    rb_define_alias(cTermios, "c_ispeed",  "ispeed");
+    rb_define_alias(cTermios, "c_ispeed=", "ispeed=");
+    rb_define_alias(cTermios, "c_ospeed",  "ospeed");
+    rb_define_alias(cTermios, "c_ospeed=", "ospeed=");
 
     /* constants under Termios module */
 
@@ -677,14 +526,28 @@ Init_termios()
     lflags = rb_hash_new();
     rb_define_const(mTermios, "LFLAGS", lflags);
 
-    baud = rb_hash_new();
-    rb_define_const(mTermios, "BAUD", baud);
+    bauds = rb_hash_new();
+    rb_define_const(mTermios, "BAUDS", bauds);
+
+    tcsetattr_opt = rb_ary_new();
+    rb_define_const(mTermios, "SETATTR_OPTS", tcsetattr_opt);
+
+    tcflush_qs = rb_ary_new();
+    rb_define_const(mTermios, "FLUSH_QSELECTORS", tcflush_qs);
+
+    tcflow_act = rb_ary_new();
+    rb_define_const(mTermios, "FLOW_ACTIONS", tcflow_act);
 
 #define define_flag(hash, flag) \
     { \
       rb_define_const(mTermios, #flag, INT2FIX(flag)); \
       rb_hash_aset(hash, rb_const_get(mTermios, rb_intern(#flag)), \
 	  ID2SYM(rb_intern(#flag))); \
+    }
+#define define_flag2(ary, flag) \
+    { \
+      rb_define_const(mTermios, #flag, INT2FIX(flag)); \
+      rb_ary_push(ary, rb_const_get(mTermios, rb_intern(#flag)));\
     }
 
     /* c_cc characters */
@@ -884,52 +747,52 @@ Init_termios()
     define_flag(cflags, CBAUD);
 #endif
 #ifdef B0
-    define_flag(baud, B0);
+    define_flag(bauds, B0);
 #endif
 #ifdef B50
-    define_flag(baud, B50);
+    define_flag(bauds, B50);
 #endif
 #ifdef B75
-    define_flag(baud, B75);
+    define_flag(bauds, B75);
 #endif
 #ifdef B110
-    define_flag(baud, B110);
+    define_flag(bauds, B110);
 #endif
 #ifdef B134
-    define_flag(baud, B134);
+    define_flag(bauds, B134);
 #endif
 #ifdef B150
-    define_flag(baud, B150);
+    define_flag(bauds, B150);
 #endif
 #ifdef B200
-    define_flag(baud, B200);
+    define_flag(bauds, B200);
 #endif
 #ifdef B300
-    define_flag(baud, B300);
+    define_flag(bauds, B300);
 #endif
 #ifdef B600
-    define_flag(baud, B600);
+    define_flag(bauds, B600);
 #endif
 #ifdef B1200
-    define_flag(baud, B1200);
+    define_flag(bauds, B1200);
 #endif
 #ifdef B1800
-    define_flag(baud, B1800);
+    define_flag(bauds, B1800);
 #endif
 #ifdef B2400
-    define_flag(baud, B2400);
+    define_flag(bauds, B2400);
 #endif
 #ifdef B4800
-    define_flag(baud, B4800);
+    define_flag(bauds, B4800);
 #endif
 #ifdef B9600
-    define_flag(baud, B9600);
+    define_flag(bauds, B9600);
 #endif
 #ifdef B19200
-    define_flag(baud, B19200);
+    define_flag(bauds, B19200);
 #endif
 #ifdef B38400
-    define_flag(baud, B38400);
+    define_flag(bauds, B38400);
 #endif
 #ifdef EXTA
     define_flag(cflags, EXTA);
@@ -974,16 +837,16 @@ Init_termios()
     define_flag(cflags, CBAUDEX);
 #endif
 #ifdef B57600
-    define_flag(baud, B57600);
+    define_flag(bauds, B57600);
 #endif
 #ifdef B115200
-    define_flag(baud, B115200);
+    define_flag(bauds, B115200);
 #endif
 #ifdef B230400
-    define_flag(baud, B230400);
+    define_flag(bauds, B230400);
 #endif
 #ifdef B460800
-    define_flag(baud, B460800);
+    define_flag(bauds, B460800);
 #endif
 #ifdef CIBAUD
     define_flag(cflags, CIBAUD);
@@ -1041,40 +904,40 @@ Init_termios()
 
     /* tcflow() and TCXONC use these */
 #ifdef TCOOFF
-    rb_define_const(mTermios, "TCOOFF", INT2FIX(TCOOFF));
+    define_flag2(tcflow_act, TCOOFF);
 #endif
 #ifdef TCOON
-    rb_define_const(mTermios, "TCOON", INT2FIX(TCOON));
+    define_flag2(tcflow_act, TCOON);
 #endif
 #ifdef TCIOFF
-    rb_define_const(mTermios, "TCIOFF", INT2FIX(TCIOFF));
+    define_flag2(tcflow_act, TCIOFF);
 #endif
 #ifdef TCION
-    rb_define_const(mTermios, "TCION", INT2FIX(TCION));
+    define_flag2(tcflow_act, TCION);
 #endif
 
     /* tcflush() and TCFLSH use these */
 #ifdef TCIFLUSH
-    rb_define_const(mTermios, "TCIFLUSH", INT2FIX(TCIFLUSH));
+    define_flag2(tcflush_qs, TCIFLUSH);
 #endif
 #ifdef TCOFLUSH
-    rb_define_const(mTermios, "TCOFLUSH", INT2FIX(TCOFLUSH));
+    define_flag2(tcflush_qs, TCOFLUSH);
 #endif
 #ifdef TCIOFLUSH
-    rb_define_const(mTermios, "TCIOFLUSH", INT2FIX(TCIOFLUSH));
+    define_flag2(tcflush_qs, TCIOFLUSH);
 #endif
 
     /* tcsetattr uses these */
 #ifdef TCSANOW
-    rb_define_const(mTermios, "TCSANOW", INT2FIX(TCSANOW));
+    define_flag2(tcsetattr_opt, TCSANOW);
 #endif
 #ifdef TCSADRAIN
-    rb_define_const(mTermios, "TCSADRAIN", INT2FIX(TCSADRAIN));
+    define_flag2(tcsetattr_opt, TCSADRAIN);
 #endif
 #ifdef TCSAFLUSH
-    rb_define_const(mTermios, "TCSAFLUSH", INT2FIX(TCSAFLUSH));
+    define_flag2(tcsetattr_opt, TCSAFLUSH);
 #endif
 #ifdef TCSASOFT
-    rb_define_const(mTermios, "TCSASOFT", INT2FIX(TCSASOFT));
+    define_flag2(tcsetattr_opt, TCSASOFT);
 #endif
 }

@@ -1,5 +1,12 @@
 2002-10-12  akira yamada  <akira@arika.org>
 
+	* termios.c: revoked Termios::Termios#set_cc and removed some methods
+	such as Termios::Termios#iflag etc.  they became attr_reader.
+
+	* version 0.9.3.
+
+2002-10-12  akira yamada  <akira@arika.org>
+
 	* termios.c
 	(termios_cc): accepts index of c_cc.
 	(termios_set_a_cc): new function for Termios::Termios#set_cc.

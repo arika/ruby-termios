@@ -85,7 +85,7 @@ module.
 IFLAGS, OFLAGS, CFLAGS and LFLAGS are Hash object.  They contains Symbols of
 constants for c_iflag, c_oflag, c_cflag and c_lflag.
 
-CCINDEX and BAUD are Hash object too.  They contains Symbols of constats for
+CCINDEX and BAUDS are Hash object too.  They contains Symbols of constats for
 c_cc or ispeed and ospeed.
 
 == Termios::Termios class
@@ -131,24 +131,13 @@ A wrapper class for "struct termios" in C.
 --- c_lflag=(flag)
     It sets flag to c_lflag.
 
---- cc(cc_idx = nil)
---- c_cc(cc_idx = nil)
-    cc_idx is nil, then it returns values of c_cc.
-    cc_idx is Fixnum, then it returns a value of c_cc[cc_idx].
-
-    Note: If you evaluates "c_cc[idx] = char", 
-    then cc_ary which is returned by c_cc are changed but
-    the Termios object are not changed.
-    "cc=" or "set_cc" is useful for the purpose.
+--- cc
+--- c_cc
+    It returns values of c_cc.
 
 --- cc=(cc_ary)
 --- c_cc=(cc_ary)
     It sets cc_ary to c_cc.
-
---- set_cc(cc_idx, cc_value)
-    It sets cc_value to c_cc[cc_idx].
-    If cc_value are omitted and cc_idx if Array, 
-    then it treats cc_idx as cc_ary and sets to c_cc.
 
 --- ispeed
 --- c_ispeed
