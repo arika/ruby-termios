@@ -2,7 +2,7 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.7 2002-10-12 14:17:29 akira Exp $
+  $Id: termios.c,v 1.8 2002-10-12 15:15:25 akira Exp $
 
  */
 
@@ -16,7 +16,6 @@ static VALUE mTermios;
 static VALUE cTermios;
 static VALUE tcsetattr_opt, tcflush_qs, tcflow_act;
 static ID id_iflag, id_oflag, id_cflag, id_lflag, id_cc, id_ispeed, id_ospeed;
-static ID id_to_i;
 
 static VALUE
 termios_set_iflag(self, value)
@@ -73,7 +72,7 @@ termios_set_ispeed(self, value)
     VALUE self, value;
 {
     Check_Type(value, T_FIXNUM);
-    rb_ivar_set(self, id_ospeed, value);
+    rb_ivar_set(self, id_ispeed, value);
 
     return value;
 }
@@ -96,8 +95,12 @@ termios_initialize(argc, argv, self)
 {
     VALUE c_iflag, c_oflag, c_cflag, c_lflag, c_cc, c_ispeed, c_ospeed;
     VALUE cc_ary;
+    int i;
 
     cc_ary = rb_ary_new2(NCCS);
+    for (i = 0; i < NCCS; i++) {
+	rb_ary_store(cc_ary, i, INT2FIX(0));
+    }
 
     rb_ivar_set(self, id_iflag,  Qnil);
     rb_ivar_set(self, id_oflag,  Qnil);
@@ -176,7 +179,12 @@ Termios_to_termios(obj, t)
 
     cc_ary = rb_ivar_get(obj, id_cc);
     for (i = 0; i < NCCS; i++) {
-	t->c_cc[i] = NUM2INT(rb_funcall(RARRAY(cc_ary)->ptr[i], id_to_i, 0));
+	if (TYPE(RARRAY(cc_ary)->ptr[i]) == T_FIXNUM) {
+	    t->c_cc[i] = NUM2INT(RARRAY(cc_ary)->ptr[i]);
+	}
+	else {
+	    t->c_cc[i] = 0;
+	}
     }
 
     cfsetispeed(t, FIX2INT(rb_ivar_get(obj, id_ispeed)));
@@ -422,8 +430,6 @@ Init_termios()
 {
     VALUE ccindex, iflags, oflags, cflags, lflags, bauds;
 
-    id_to_i     = rb_intern("to_i");
-
     /* module Termios */
 
     mTermios = rb_define_module("Termios");
@@ -442,23 +448,23 @@ Init_termios()
 
     rb_define_module_function(mTermios,"tcdrain",    termios_s_tcdrain,    1);
     rb_define_module_function(mTermios,  "drain",    termios_s_tcdrain,    1);
-    rb_define_method(mTermios,         "tcdrain",    termios_s_tcdrain,    0);
+    rb_define_method(mTermios,         "tcdrain",    termios_tcdrain,    0);
 
     rb_define_module_function(mTermios,"tcflush",    termios_s_tcflush,    2);
     rb_define_module_function(mTermios,  "flush",    termios_s_tcflush,    2);
-    rb_define_method(mTermios,         "tcflush",    termios_s_tcflush,    1);
+    rb_define_method(mTermios,         "tcflush",    termios_tcflush,    1);
 
     rb_define_module_function(mTermios,"tcflow",     termios_s_tcflow,     2);
     rb_define_module_function(mTermios,  "flow",     termios_s_tcflow,     2);
-    rb_define_method(mTermios,         "tcflow",     termios_s_tcflow,     1);
+    rb_define_method(mTermios,         "tcflow",     termios_tcflow,     1);
 
     rb_define_module_function(mTermios,"tcgetpgrp",  termios_s_tcgetpgrp,  1);
     rb_define_module_function(mTermios,  "getpgrp",  termios_s_tcgetpgrp,  1);
-    rb_define_method(mTermios,         "tcgetpgrp",  termios_s_tcgetpgrp,  0);
+    rb_define_method(mTermios,         "tcgetpgrp",  termios_tcgetpgrp,  0);
 
     rb_define_module_function(mTermios,"tcsetpgrp",  termios_s_tcsetpgrp,  2);
     rb_define_module_function(mTermios,  "setpgrp",  termios_s_tcsetpgrp,  2);
-    rb_define_method(mTermios,         "tcsetpgrp",  termios_s_tcsetpgrp,  1);
+    rb_define_method(mTermios,         "tcsetpgrp",  termios_tcsetpgrp,  1);
 
     rb_define_module_function(mTermios,"new_termios",termios_s_newtermios, -1);
 

@@ -1,3 +1,16 @@
+2002-10-13  akira yamada  <akira@arika.org>
+
+	* termios.c
+	(termios_set_ispeed): fixed typo.
+	(termios_initialize): 0-cleared "@cc".
+	(Termios_to_termios): unknown cc-values are treated as 0.
+
+	* examples/modem_check.rb: renamed examples/modem_check1.rb.
+
+	* examples/modem_check0.rb, exampes/modem_check2.rb: new.
+
+	* version 0.9.4.
+
 2002-10-12  akira yamada  <akira@arika.org>
 
 	* termios.c: revoked Termios::Termios#set_cc and removed some methods

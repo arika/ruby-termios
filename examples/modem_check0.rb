@@ -1,8 +1,9 @@
 require 'fcntl'
 require 'termios'
+include Termios
 
 DEVICE = '/dev/modem'
-BAUDRATE = Termios::B9600
+BAUDRATE = B115200
 
 def dev_open(path)
   dev = open(DEVICE, File::RDWR | File::NONBLOCK)
@@ -13,11 +14,11 @@ end
 
 def dump_termios(tio, banner)
   puts banner
-  puts "  ispeed = #{Termios::BAUD[tio.ispeed]}, ospeed = #{Termios::BAUD[tio.ospeed]}"
+  puts "  ispeed = #{BAUDS[tio.ispeed]}, ospeed = #{BAUDS[tio.ospeed]}"
   ["iflag", "oflag", "cflag", "lflag"].each do |x|
     flag = tio.send(x)
     flags = []
-    eval("Termios::#{x.upcase}S").each do |f, sym|
+    eval("#{x.upcase}S").each do |f, sym|
       flags << sym.to_s if flag & f != 0
     end
     puts "   #{x} = #{flags.sort.join(' | ')}"
@@ -25,29 +26,30 @@ def dump_termios(tio, banner)
   print "      cc ="
   cc = tio.cc
   cc.each_with_index do |x, idx|
-    print " #{Termios::CCINDEX[idx]}=#{x}" if Termios::CCINDEX.include?(idx)
+    print " #{CCINDEX[idx]}=#{x}" if CCINDEX.include?(idx)
   end
   puts
 end
 
 dev = dev_open(DEVICE)
 
-oldtio = Termios::getattr(dev)
+oldtio = getattr(dev)
 dump_termios(oldtio, "current tio:")
 
-newtio = Termios::new_termios()
-newtio.iflag = Termios::IGNPAR
+newtio = new_termios()
+newtio.iflag = IGNPAR
 newtio.oflag = 0
-newtio.cflag = (BAUDRATE | Termios::CRTSCTS | 
-		Termios::CS8 | Termios::CREAD)
+newtio.cflag = (CRTSCTS | CS8 | CREAD)
 newtio.lflag = 0
-newtio.set_cc(Termios::VTIME, 0)
-newtio.set_cc(Termios::VMIN, 1)
+newtio.cc[VTIME] = 0
+newtio.cc[VMIN] = 1
+newtio.ispeed = BAUDRATE
+newtio.ospeed = BAUDRATE
 dump_termios(newtio, "new tio:")
 
-Termios::flush(dev, Termios::TCIOFLUSH)
-Termios::setattr(dev, Termios::TCSANOW, newtio)
-dump_termios(Termios::getattr(dev), "current tio:")
+flush(dev, TCIOFLUSH)
+setattr(dev, TCSANOW, newtio)
+dump_termios(getattr(dev), "current tio:")
 
 "AT\x0d".each_byte {|c|
   c = c.chr
@@ -63,5 +65,5 @@ while /OK\x0d\x0a/o !~ r
   p [:response, r]
 end
 
-Termios::setattr(dev, Termios::TCSANOW, oldtio)
-dump_termios(Termios::getattr(dev), "current tio:")
+setattr(dev, TCSANOW, oldtio)
+dump_termios(getattr(dev), "current tio:")
