@@ -1,3 +1,0 @@
-  * IOオブジェクトにextendできるような構成にする
-  * tcsetattrの引数はハッシュにする
-    (Struct::Termiosは廃止)

@@ -1,6 +1,15 @@
+2002-09-25  akira yamada  <akira@arika.org>
+
+	* Termios module can be included to IO classes and can extend IO
+	  objects.
+	
+	* now Termios::Termios is rb_cObject class.
+
+	* version 0.9.0.
+	
 Wed Nov 15 19:03:06 2000  akira yamada  <akira@arika.org>
 
-	* renamed ruby-termios.
+	* renamed to ruby-termios.
 
 Wed Dec  1 21:27:23 1999  GOTO Kentaro <gotoken@math.sci.hokudai.ac.jp>
 

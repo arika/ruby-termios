@@ -2,7 +2,7 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.2 2002-09-24 16:13:00 akira Exp $
+  $Id: termios.c,v 1.3 2002-09-25 00:03:04 akira Exp $
 
  */
 
@@ -21,27 +21,6 @@ free_termios(t)
 {
     if (t) {
 	free(t);
-    }
-}
-
-/*
-  Termios::Termios -> struct termios
-*/
-static int
-Termios_to_termios0(value, name)
-    VALUE value;
-    char *name;
-{
-    if (NIL_P(value)) {
-	return 0;
-    }
-    else if (FIXNUM_P(value)) {
-	return FIX2INT(value);
-    }
-    else {
-	rb_raise(rb_eTypeError, 
-		 "wrong structure value %s (expected Fixnum or Nil)", 
-		 name);
     }
 }
 
@@ -75,31 +54,32 @@ termios_tcgetattr0(io)
 }
 
 static VALUE
-termios_s_tcgetattr(obj, io)
-    VALUE obj, io;
+termios_tcgetattr(io)
+    VALUE io;
 {
     Check_Type(io, T_FILE);
     return termios_tcgetattr0(io);
 }
 
 static VALUE
-termios_tcgetattr(self)
-    VALUE self;
+termios_s_tcgetattr(obj, io)
+    VALUE obj, io;
 {
+    return termios_tcgetattr(io);
 }
 
 static VALUE
-termios_s_tcsetattr(obj, io, opt, param)
-    VALUE obj, io, opt, param;
+termios_tcsetattr(io, opt, param)
+    VALUE io, opt, param;
 {
     VALUE old;
     OpenFile *fptr;
     struct termios *t;
-    char *type;
 
     Check_Type(io,  T_FILE);
     Check_Type(opt, T_FIXNUM);
     if (CLASS_OF(param) != cTermios) {
+	char *type = rb_class2name(CLASS_OF(param));
 	rb_raise(rb_eTypeError, 
 		 "wrong argument type %s (expected Struct::Termios)", 
 		 type);
@@ -117,14 +97,15 @@ termios_s_tcsetattr(obj, io, opt, param)
 }
 
 static VALUE
-termios_tcsetattr(self, opt, param)
-    VALUE self, opt, param;
+termios_s_tcsetattr(obj, io, opt, param)
+    VALUE obj, io, opt, param;
 {
+    return termios_tcsetattr(io, opt, param);
 }
 
 static VALUE
-termios_s_tcsendbreak(obj, io, duration)
-    VALUE obj, io, duration;
+termios_tcsendbreak(io, duration)
+    VALUE io, duration;
 {
     OpenFile *fptr;
 
@@ -141,14 +122,15 @@ termios_s_tcsendbreak(obj, io, duration)
 }
 
 static VALUE
-termios_tcsendbreak(self, duration)
-    VALUE self, duration;
+termios_s_tcsendbreak(obj, io, duration)
+    VALUE obj, io, duration;
 {
+    return termios_tcsendbreak(io, duration);
 }
 
 static VALUE
-termios_s_tcdrain(obj, io)
-    VALUE obj, io;
+termios_tcdrain(io)
+    VALUE io;
 {
     OpenFile *fptr;
 
@@ -163,14 +145,15 @@ termios_s_tcdrain(obj, io)
 }
 
 static VALUE
-termios_tcdrain(self)
-    VALUE self;
+termios_s_tcdrain(obj, io)
+    VALUE obj, io;
 {
+    return termios_tcdrain(io);
 }
 
 static VALUE
-termios_s_tcflush(obj, io, qs)
-    VALUE obj, io, qs;
+termios_tcflush(io, qs)
+    VALUE io, qs;
 {
     OpenFile *fptr;
     int queue_selector;
@@ -195,14 +178,15 @@ termios_s_tcflush(obj, io, qs)
 }
 
 static VALUE
-termios_tcflush(self, qs)
-    VALUE self, qs;
+termios_s_tcflush(obj, io, qs)
+    VALUE obj, io, qs;
 {
+    return termios_tcflush(io, qs);
 }
 
 static VALUE
-termios_s_tcflow(obj, io, act)
-    VALUE obj, io, act;
+termios_tcflow(io, act)
+    VALUE io, act;
 {
     OpenFile *fptr;
     int action;
@@ -229,21 +213,22 @@ termios_s_tcflow(obj, io, act)
 }
 
 static VALUE
-termios_tcflow(self, act)
-    VALUE self, act;
+termios_s_tcflow(obj, io, act)
+    VALUE obj, io, act;
 {
+    return termios_tcflow(io, act);
 }
 
 static VALUE
-termios_s_tcgetpgrp(obj, io)
-    VALUE obj, io;
+termios_tcgetpgrp(io)
+    VALUE io;
 {
     OpenFile *fptr;
     int pid;
 
     Check_Type(io,  T_FILE);
     GetOpenFile(io, fptr);
-    if (pid = tcgetpgrp(fileno(fptr->f)) < 0) {
+    if ((pid = tcgetpgrp(fileno(fptr->f))) < 0) {
 	rb_raise(rb_eRuntimeError, 
 		 "can't get process group id (%s)", strerror(errno));
     }
@@ -252,14 +237,15 @@ termios_s_tcgetpgrp(obj, io)
 }
 
 static VALUE
-termios_tcgetpgrp(self)
-    VALUE self;
+termios_s_tcgetpgrp(obj, io)
+    VALUE obj, io;
 {
+    return termios_tcgetpgrp(io);
 }
 
 static VALUE
-termios_s_tcsetpgrp(obj, io, pgrpid)
-    VALUE obj, io, pgrpid;
+termios_tcsetpgrp(io, pgrpid)
+    VALUE io, pgrpid;
 {
     OpenFile *fptr;
 
@@ -276,16 +262,17 @@ termios_s_tcsetpgrp(obj, io, pgrpid)
 }
 
 static VALUE
-termios_tcsetpgrp(self, pgrpid)
-    VALUE self, pgrpid;
+termios_s_tcsetpgrp(obj, io, pgrpid)
+    VALUE obj, io, pgrpid;
 {
+    return termios_tcsetpgrp(io, pgrpid);
 }
 
 static VALUE
-termios_s_new(argc, argv, self)
+termios_s_new(argc, argv, io)
     int argc;
     VALUE *argv;
-    VALUE self;
+    VALUE io;
 {
     VALUE obj, c_iflag, c_oflag, c_cflag, c_lflag, c_cc, c_ispeed, c_ospeed;
     int i;
@@ -336,7 +323,7 @@ termios_s_new(argc, argv, self)
     }
     else {
 	Check_Type(c_cc, T_ARRAY);
-	for (i = 0; i < NCCS; i++) {
+	for (i = 0; i < NCCS && i < RARRAY(c_cc)->len; i++) {
 	    t->c_cc[i] = FIX2INT(RARRAY(c_cc)->ptr[i]);
 	}
     }
@@ -364,84 +351,171 @@ static VALUE
 termios_iflag(self)
     VALUE self;
 {
+    struct termios *t;
+
+    Data_Get_Struct(self, struct termios, t);
+    return INT2FIX(t->c_iflag);
 }
 
 static VALUE
-termios_set_iflag(self, obj)
-    VALUE self, obj;
+termios_set_iflag(self, value)
+    VALUE self, value;
 {
+    struct termios *t;
+
+    Check_Type(value, T_FIXNUM);
+    Data_Get_Struct(self, struct termios, t);
+    t->c_iflag = FIX2INT(value);
+
+    return value;
 }
 
 static VALUE
 termios_oflag(self)
     VALUE self;
 {
+    struct termios *t;
+
+    Data_Get_Struct(self, struct termios, t);
+    return INT2FIX(t->c_oflag);
 }
 
 static VALUE
-termios_set_oflag(self, obj)
-    VALUE self, obj;
+termios_set_oflag(self, value)
+    VALUE self, value;
 {
+    struct termios *t;
+
+    Check_Type(value, T_FIXNUM);
+    Data_Get_Struct(self, struct termios, t);
+    t->c_oflag = FIX2INT(value);
+
+    return value;
 }
 
 static VALUE
 termios_cflag(self)
     VALUE self;
 {
+    struct termios *t;
+
+    Data_Get_Struct(self, struct termios, t);
+    return INT2FIX(t->c_cflag);
 }
 
 static VALUE
-termios_set_cflag(self, obj)
-    VALUE self, obj;
+termios_set_cflag(self, value)
+    VALUE self, value;
 {
+    struct termios *t;
+
+    Check_Type(value, T_FIXNUM);
+    Data_Get_Struct(self, struct termios, t);
+    t->c_cflag = FIX2INT(value);
+
+    return value;
 }
 
 static VALUE
 termios_lflag(self)
     VALUE self;
 {
+    struct termios *t;
+
+    Data_Get_Struct(self, struct termios, t);
+    return INT2FIX(t->c_lflag);
 }
 
 static VALUE
-termios_set_lflag(self, obj)
-    VALUE self, obj;
+termios_set_lflag(self, value)
+    VALUE self, value;
 {
+    struct termios *t;
+
+    Check_Type(value, T_FIXNUM);
+    Data_Get_Struct(self, struct termios, t);
+    t->c_lflag = FIX2INT(value);
+
+    return value;
 }
 
 static VALUE
 termios_cc(self)
     VALUE self;
 {
+    int i;
+    struct termios *t;
+    VALUE ary;
+
+    Data_Get_Struct(self, struct termios, t);
+    ary = rb_ary_new2(NCCS);
+    for (i = 0; i < NCCS; i++) {
+	rb_ary_push(ary, INT2FIX(t->c_cc[i]));
+    }
+
+    return ary;
 }
 
 static VALUE
-termios_set_cc(self, obj)
-    VALUE self, obj;
+termios_set_cc(self, value)
+    VALUE self, value;
 {
+    int i;
+    struct termios *t;
+
+    Check_Type(value, T_ARRAY);
+    Data_Get_Struct(self, struct termios, t);
+    for (i = 0; i < NCCS && i < RARRAY(value)->len; i++) {
+	t->c_cc[i] = FIX2INT(RARRAY(value)->ptr[i]);
+    }
+
+    return value;
 }
 
 static VALUE
 termios_ispeed(self)
     VALUE self;
 {
+    struct termios *t;
+
+    Data_Get_Struct(self, struct termios, t);
+    return INT2FIX(cfgetispeed(t));
 }
 
 static VALUE
-termios_set_ispeed(self, obj)
-    VALUE self, obj;
+termios_set_ispeed(self, value)
+    VALUE self, value;
 {
+    struct termios *t;
+
+    Check_Type(value, T_FIXNUM);
+    Data_Get_Struct(self, struct termios, t);
+    cfsetispeed(t, FIX2INT(value));
+
+    return value;
 }
 
 static VALUE
 termios_ospeed(self)
     VALUE self;
 {
+    struct termios *t;
+
+    Data_Get_Struct(self, struct termios, t);
+    return INT2FIX(cfgetospeed(t));
 }
 
 static VALUE
-termios_set_ospeed(self, obj)
-    VALUE self, obj;
+termios_set_ospeed(self, value)
+    VALUE self, value;
 {
+    struct termios *t;
+
+    Check_Type(value, T_FIXNUM);
+    Data_Get_Struct(self, struct termios, t);
+    cfsetospeed(t, FIX2INT(value));
+
+    return value;
 }
 
 void
