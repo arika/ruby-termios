@@ -1,7 +1,30 @@
+ruby-termios
+============
 
-Copyright:
+Description
+-----------
 
-Termios module for Ruby is copyrighted free software by akira yamada
+Ruby-termios enables you to use termios(3) interface by Ruby.
+
+
+Requires
+--------
+
+  * Ruby 1.6 (or later)
+
+
+Installation
+------------
+
+ruby extconf.rb
+make
+make install
+
+
+Copyright
+---------
+
+Ruby-termios for Ruby is copyrighted free software by akira yamada
 <akira@arika.org>.  You can redistribute it and/or modify it under either 
 the terms of the GPL, or the conditions below:
 
