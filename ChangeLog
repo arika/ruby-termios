@@ -1,0 +1,18 @@
+Wed Nov 15 19:03:06 2000  akira yamada  <akira@arika.org>
+
+	* renamed ruby-termios.
+
+Wed Dec  1 21:27:23 1999  GOTO Kentaro <gotoken@math.sci.hokudai.ac.jp>
+
+	* termios.c: removed c_line.
+	* test1.rb: removed c_line.
+	* test3.rb: stty -echo.
+
+Fri Feb 19 00:05:20 1999  akira yamada  <akira@linux.or.jp>
+
+	* termios.c (Init_termios): now sTermios is hidden.
+	* test2.rb: rewrited.
+
+Fri Thu 18 02:24:21 1999  akira yamada  <akira@linux.or.jp>
+
+	* development started.
