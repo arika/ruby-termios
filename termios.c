@@ -2,7 +2,7 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.3 2002-09-25 00:03:04 akira Exp $
+  $Id: termios.c,v 1.4 2002-09-25 12:53:17 akira Exp $
 
  */
 
@@ -518,6 +518,20 @@ termios_set_ospeed(self, value)
     return value;
 }
 
+static VALUE
+termios_clone(self)
+    VALUE self;
+{
+    struct termios *old, *new;
+    VALUE obj;
+
+    obj = Data_Make_Struct(cTermios, struct termios, 0, free_termios, new);
+    Data_Get_Struct(self, struct termios, old);
+    memcpy(new, old, sizeof(struct termios));
+
+    return obj;
+}
+
 void
 Init_termios()
 {
@@ -557,6 +571,8 @@ Init_termios()
     rb_define_module_function(mTermios,  "setpgrp",  termios_s_tcsetpgrp,  2);
     rb_define_method(mTermios,         "tcsetpgrp",  termios_s_tcsetpgrp,  1);
 
+    rb_define_module_function(mTermios,"new_termios",termios_s_new,       -1);
+
     /* class Termios::Termios */
 
     cTermios = rb_define_class_under(mTermios, "Termios", rb_cObject);
@@ -584,8 +600,9 @@ Init_termios()
     rb_define_method(cTermios, "ospeed",  termios_ospeed,     0);
     rb_define_method(cTermios, "ospeed=", termios_set_ospeed, 1);
 
+    rb_define_method(cTermios, "clone",   termios_clone,      0);
+
 #if 0
-    rb_define_module_function(mTermios,"new_termios",termios_s_new_termios,-1);
     sTermios = rb_struct_define("Termios",
 				"c_iflag",	/* input modes */
 				"c_oflag",	/* output modes */
@@ -987,5 +1004,8 @@ Init_termios()
 #endif
 #ifdef TCSAFLUSH
     rb_define_const(mTermios, "TCSAFLUSH", INT2FIX(TCSAFLUSH));
+#endif
+#ifdef TCSASOFT
+    rb_define_const(mTermios, "TCSASOFT", INT2FIX(TCSASOFT));
 #endif
 }
