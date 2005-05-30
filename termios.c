@@ -1,8 +1,8 @@
 /*
 
   A termios library for Ruby.
-  Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.8 2002-10-12 15:15:25 akira Exp $
+  Copyright (C) 1999, 2000, 2002, 2005 akira yamada.
+  $Id: termios.c,v 1.9 2005-05-30 13:03:31 akira Exp $
 
  */
 
@@ -11,6 +11,12 @@
 #include <termios.h>
 #include <unistd.h>
 #include <string.h>
+
+#ifdef GetReadFile
+#define GetFD(fptr) fileno(GetReadFile(fptr))
+#else
+#define GetFD(fptr) (fptr->fd)
+#endif
 
 static VALUE mTermios;
 static VALUE cTermios;
@@ -201,7 +207,7 @@ termios_tcgetattr(io)
 
     Check_Type(io, T_FILE);
     GetOpenFile(io, fptr);
-    if (tcgetattr(fileno(fptr->f), &t) < 0) {
+    if (tcgetattr(GetFD(fptr), &t) < 0) {
 	rb_raise(rb_eRuntimeError, 
 		 "can't get terminal parameters (%s)", strerror(errno));
     }
@@ -243,7 +249,7 @@ termios_tcsetattr(io, opt, param)
     old = termios_tcgetattr(io);
     GetOpenFile(io, fptr);
     Termios_to_termios(param, &t);
-    if (tcsetattr(fileno(fptr->f), tcsetattr_option, &t) < 0) {
+    if (tcsetattr(GetFD(fptr), tcsetattr_option, &t) < 0) {
 	rb_raise(rb_eRuntimeError,
 		 "can't set terminal parameters (%s)", strerror(errno));
     }
@@ -268,7 +274,7 @@ termios_tcsendbreak(io, duration)
     Check_Type(duration, T_FIXNUM);
 
     GetOpenFile(io, fptr);
-    if (tcsendbreak(fileno(fptr->f), FIX2INT(duration)) < 0) {
+    if (tcsendbreak(GetFD(fptr), FIX2INT(duration)) < 0) {
 	rb_raise(rb_eRuntimeError, 
 		 "can't transmits break (%s)", strerror(errno));
     }
@@ -292,7 +298,7 @@ termios_tcdrain(io)
     Check_Type(io, T_FILE);
 
     GetOpenFile(io, fptr);
-    if (tcdrain(fileno(fptr->f)) < 0) {
+    if (tcdrain(GetFD(fptr)) < 0) {
 	rb_raise(rb_eRuntimeError, "can't drain (%s)", strerror(errno));
     }
 
@@ -322,7 +328,7 @@ termios_tcflush(io, qs)
     }
 
     GetOpenFile(io, fptr);
-    if (tcflush(fileno(fptr->f), queue_selector) < 0) {
+    if (tcflush(GetFD(fptr), queue_selector) < 0) {
 	rb_raise(rb_eRuntimeError, "can't flush (%s)", strerror(errno));
     }
 
@@ -352,7 +358,7 @@ termios_tcflow(io, act)
     }
 
     GetOpenFile(io, fptr);
-    if (tcflow(fileno(fptr->f), action) < 0) {
+    if (tcflow(GetFD(fptr), action) < 0) {
 	rb_raise(rb_eRuntimeError, 
 		 "can't control transmitting data flow (%s)", strerror(errno));
     }
@@ -376,7 +382,7 @@ termios_tcgetpgrp(io)
 
     Check_Type(io,  T_FILE);
     GetOpenFile(io, fptr);
-    if ((pid = tcgetpgrp(fileno(fptr->f))) < 0) {
+    if ((pid = tcgetpgrp(GetFD(fptr))) < 0) {
 	rb_raise(rb_eRuntimeError, 
 		 "can't get process group id (%s)", strerror(errno));
     }
@@ -401,7 +407,7 @@ termios_tcsetpgrp(io, pgrpid)
     Check_Type(pgrpid, T_FIXNUM);
 
     GetOpenFile(io, fptr);
-    if (tcsetpgrp(fileno(fptr->f), FIX2INT(pgrpid)) < 0) {
+    if (tcsetpgrp(GetFD(fptr), FIX2INT(pgrpid)) < 0) {
 	rb_raise(rb_eRuntimeError, 
 		 "can't set process group id (%s)", strerror(errno));
     }

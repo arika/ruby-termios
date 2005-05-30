@@ -1,3 +1,9 @@
+2005-05-30  akira yamada  <akira@arika.org>
+
+	* termios.c: applied a patch which makes ruby-termios work under
+	  both ruby1.8 and ruby1.9.  [ruby-talk:143781]
+	  Thanks to: Akr.
+
 2002-10-13  akira yamada  <akira@arika.org>
 
 	* termios.c
