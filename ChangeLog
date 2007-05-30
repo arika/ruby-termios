@@ -1,3 +1,32 @@
+2007-05-29  Tanaka Akira  <akr@fsij.org>
+
+	* extconf.rb: check rb_io_t.
+	  check fd member in OpenFile.
+
+	* termios.c: support Ruby 1.9.
+	  use unsigned long for flags bigger than Fixnum such as CRTSCTS.
+	  use rb_sys_fail instead of rb_raise(rb_eRuntimeError).
+	  (Termios_to_termios): use rb_ary_entry to access cc_ary to avoid SEGV.
+	  (termios_tcgetpgrp): use pid_t.
+	  (termios_tcsetpgrp): ditto.
+	  (Termios::Termios#dup): defined to duplicate cc.
+	  (Termios::Termios#clone): ditto.
+	  (Termios::POSIX_VDISABLE): defined.
+	  (Termios::CCINDEX_NAMES): defined.
+	  (Termios::IFLAG_NAMES): defined.
+	  (Termios::OFLAG_NAMES): defined.
+	  (Termios::OFLAG_CHOICES): defined.
+	  (Termios::CFLAG_NAMES): defined.
+	  (Termios::CFLAG_CHOICES): defined.
+	  (Termios::LFLAG_NAMES): defined.
+	  (Termios::BAUD_NAMES): defined.
+	  (Termios::IUTF8): defined.
+	  (Termios::VDSUSP): defined for 4.4BSD.
+	  (Termios::VSTATUS): defined for 4.4BSD.
+	  (Termios::MDMBUF): defined for 4.4BSD.
+
+	* lib/termios.rb: new file.  inspect and pretty_print defined.
+	  
 2005-05-30  akira yamada  <akira@arika.org>
 
 	* termios.c: applied a patch which makes ruby-termios work under
