@@ -1,3 +1,9 @@
+2007-05-30  akira yamada  <akira@arika.org>
+
+	* extconf.rb: rb_io_t test isn't needed for Ruby 1.6.
+
+	* version 0.9.5.
+
 2007-05-29  Tanaka Akira  <akr@fsij.org>
 
 	* extconf.rb: check rb_io_t.
