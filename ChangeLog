@@ -1,3 +1,8 @@
+2008-06-03  akira yamada  <akira@arika.org>
+
+	* extconf.rb, termios.c: adjusted rb_io_t/OpenFile checks for Ruby
+	  1.8.7.
+
 2007-05-30  akira yamada  <akira@arika.org>
 
 	* extconf.rb: rb_io_t test isn't needed for Ruby 1.6.

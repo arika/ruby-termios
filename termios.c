@@ -2,7 +2,7 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.10 2007-05-30 04:09:04 akira Exp $
+  $Id: termios.c,v 1.11 2008-06-03 13:24:25 akira Exp $
 
  */
 
@@ -12,14 +12,14 @@
 #include <unistd.h>
 #include <string.h>
 
-#ifdef HAVE_TYPE_RB_IO_T
+#if defined(HAVE_TYPE_RB_IO_T) && !defined(HAVE_MACRO_OPENFILE)
 typedef rb_io_t OpenFile;
 #endif
 
-#if defined(HAVE_TYPE_RB_IO_T) ||  defined(HAVE_ST_FD)
-# define FILENO(fptr) (fptr->fd)
+#if defined(HAVE_ST_FD)
+#define FILENO(fptr) (fptr->fd)
 #else
-# define FILENO(fptr) fileno(fptr->f)
+#define FILENO(fptr) fileno(fptr->f)
 #endif
 
 #define validate_ulong(v) ULONG2NUM(NUM2ULONG(v))
@@ -229,7 +229,7 @@ termios_tcsetattr(io, opt, param)
     Check_Type(io,  T_FILE);
     Check_Type(opt, T_FIXNUM);
     if (CLASS_OF(param) != cTermios) {
-	char *type = rb_class2name(CLASS_OF(param));
+	const char *type = rb_class2name(CLASS_OF(param));
 	rb_raise(rb_eTypeError, 
 		 "wrong argument type %s (expected Termios::Termios)", 
 		 type);
