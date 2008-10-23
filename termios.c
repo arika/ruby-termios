@@ -2,14 +2,17 @@
 
   A termios library for Ruby.
   Copyright (C) 1999, 2000, 2002 akira yamada.
-  $Id: termios.c,v 1.11 2008-06-03 13:24:25 akira Exp $
+  $Id: termios.c,v 1.12 2008-10-23 01:10:00 akira Exp $
 
  */
 
 #include "ruby.h"
 #include "rubyio.h"
 #include <termios.h>
+#include <sys/ioctl.h>
+#if defined(HAVE_SYS_IOCTL_H)
 #include <unistd.h>
+#endif
 #include <string.h>
 
 #if defined(HAVE_TYPE_RB_IO_T) && !defined(HAVE_MACRO_OPENFILE)
@@ -445,6 +448,10 @@ Init_termios()
     VALUE cflags, cflags_names, cflags_choices;
     VALUE lflags, lflags_names;
     VALUE bauds, bauds_names;
+    VALUE ioctl_commands, ioctl_commands_names;
+    VALUE modem_signals, modem_signals_names;
+    VALUE pty_pkt_options, pty_pkt_options_names;
+    VALUE line_disciplines, line_disciplines_names;
 
     /* module Termios */
 
@@ -578,6 +585,26 @@ Init_termios()
 
     tcflow_act = rb_ary_new();
     rb_define_const(mTermios, "FLOW_ACTIONS", tcflow_act);
+    
+    ioctl_commands = rb_hash_new();
+    ioctl_commands_names = rb_ary_new();
+    rb_define_const(mTermios, "IOCTL_COMMANDS", ioctl_commands);
+    rb_define_const(mTermios, "IOCTL_COMMAND_NAMES", ioctl_commands_names);
+    
+    modem_signals = rb_hash_new();
+    modem_signals_names = rb_ary_new();
+    rb_define_const(mTermios, "MODEM_SIGNALS", modem_signals);
+    rb_define_const(mTermios, "MODEM_SIGNAL_NAMES", modem_signals_names);
+    
+    pty_pkt_options = rb_hash_new();
+    pty_pkt_options_names = rb_ary_new();
+    rb_define_const(mTermios, "PTY_PACKET_OPTIONS", pty_pkt_options);
+    rb_define_const(mTermios, "PTY_PACKET_OPTION_NAMES", pty_pkt_options_names);
+    
+    line_disciplines = rb_hash_new();
+    line_disciplines_names = rb_ary_new();
+    rb_define_const(mTermios, "LINE_DISCIPLINES", line_disciplines);
+    rb_define_const(mTermios, "LINE_DISCIPLINE_NAMES", line_disciplines);
 
 #define define_flag(hash, flag) \
     { \
@@ -1055,5 +1082,226 @@ Init_termios()
 #endif
 #ifdef TCSASOFT
     define_flag2(tcsetattr_opt, TCSASOFT);
+#endif
+
+    /* Constants useful to ioctl for controlling lines */
+#ifdef TIOCMODG
+	define_flag(ioctl_commands, TIOCMODG)
+#endif
+#ifdef TIOCMODS
+	define_flag(ioctl_commands, TIOCMODS)
+#endif
+#ifdef TIOCM_LE
+	define_flag(modem_signals, TIOCM_LE)
+#endif
+#ifdef TIOCM_DTR
+	define_flag(modem_signals, TIOCM_DTR)
+#endif
+#ifdef TIOCM_RTS
+	define_flag(modem_signals, TIOCM_RTS)
+#endif
+#ifdef TIOCM_ST
+	define_flag(modem_signals, TIOCM_ST)
+#endif
+#ifdef TIOCM_SR
+	define_flag(modem_signals, TIOCM_SR)
+#endif
+#ifdef TIOCM_CTS
+	define_flag(modem_signals, TIOCM_CTS)
+#endif
+#ifdef TIOCM_CAR
+	define_flag(modem_signals, TIOCM_CAR)
+#endif
+#ifdef TIOCM_CD
+	define_flag(modem_signals, TIOCM_CD)
+#endif
+#ifdef TIOCM_RNG
+	define_flag(modem_signals, TIOCM_RNG)
+#endif
+#ifdef TIOCM_RI
+	define_flag(modem_signals, TIOCM_RI)
+#endif
+#ifdef TIOCM_DSR
+	define_flag(modem_signals, TIOCM_DSR)
+#endif
+#ifdef TIOCEXCL
+	define_flag(ioctl_commands, TIOCEXCL)
+#endif
+#ifdef TIOCNXCL
+	define_flag(ioctl_commands, TIOCNXCL)
+#endif
+#ifdef TIOCFLUSH
+	define_flag(ioctl_commands, TIOCFLUSH)
+#endif
+#ifdef TIOCGETA
+	define_flag(ioctl_commands, TIOCGETA)
+#endif
+#ifdef TIOCSETA
+	define_flag(ioctl_commands, TIOCSETA)
+#endif
+#ifdef TIOCSETAW
+	define_flag(ioctl_commands, TIOCSETAW)
+#endif
+#ifdef TIOCSETAF
+	define_flag(ioctl_commands, TIOCSETAF)
+#endif
+#ifdef TIOCGETD
+	define_flag(ioctl_commands, TIOCGETD)
+#endif
+#ifdef TIOCSETD
+	define_flag(ioctl_commands, TIOCSETD)
+#endif
+#ifdef TIOCIXON
+	define_flag(ioctl_commands, TIOCIXON)
+#endif
+#ifdef TIOCIXOFF
+	define_flag(ioctl_commands, TIOCIXOFF)
+#endif
+#ifdef TIOCSBRK
+	define_flag(ioctl_commands, TIOCSBRK)
+#endif
+#ifdef TIOCCBRK
+	define_flag(ioctl_commands, TIOCCBRK)
+#endif
+#ifdef TIOCSDTR
+	define_flag(ioctl_commands, TIOCSDTR)
+#endif
+#ifdef TIOCCDTR
+	define_flag(ioctl_commands, TIOCCDTR)
+#endif
+#ifdef TIOCGPGRP
+	define_flag(ioctl_commands, TIOCGPGRP)
+#endif
+#ifdef TIOCSPGRP
+	define_flag(ioctl_commands, TIOCSPGRP)
+#endif
+#ifdef TIOCOUTQ
+	define_flag(ioctl_commands, TIOCOUTQ)
+#endif
+#ifdef TIOCSTI
+	define_flag(ioctl_commands, TIOCSTI)
+#endif
+#ifdef TIOCNOTTY
+	define_flag(ioctl_commands, TIOCNOTTY)
+#endif
+#ifdef TIOCPKT
+	define_flag(ioctl_commands, TIOCPKT)
+#endif
+#ifdef TIOCPKT_DATA
+	define_flag(pty_pkt_options, TIOCPKT_DATA)
+#endif
+#ifdef TIOCPKT_FLUSHREAD
+	define_flag(pty_pkt_options, TIOCPKT_FLUSHREAD)
+#endif
+#ifdef TIOCPKT_FLUSHWRITE
+	define_flag(pty_pkt_options, TIOCPKT_FLUSHWRITE)
+#endif
+#ifdef TIOCPKT_STOP
+	define_flag(pty_pkt_options, TIOCPKT_STOP)
+#endif
+#ifdef TIOCPKT_START
+	define_flag(pty_pkt_options, TIOCPKT_START)
+#endif
+#ifdef TIOCPKT_NOSTOP
+	define_flag(pty_pkt_options, TIOCPKT_NOSTOP)
+#endif
+#ifdef TIOCPKT_DOSTOP
+	define_flag(pty_pkt_options, TIOCPKT_DOSTOP)
+#endif
+#ifdef TIOCPKT_IOCTL
+	define_flag(pty_pkt_options, TIOCPKT_IOCTL)
+#endif
+#ifdef TIOCSTOP
+	define_flag(ioctl_commands, TIOCSTOP)
+#endif
+#ifdef TIOCSTART
+	define_flag(ioctl_commands, TIOCSTART)
+#endif
+#ifdef TIOCMSET
+	define_flag(ioctl_commands, TIOCMSET)
+#endif
+#ifdef TIOCMBIS
+	define_flag(ioctl_commands, TIOCMBIS)
+#endif
+#ifdef TIOCMBIC
+	define_flag(ioctl_commands, TIOCMBIC)
+#endif
+#ifdef TIOCMGET
+	define_flag(ioctl_commands, TIOCMGET)
+#endif
+#ifdef TIOCREMOTE
+	define_flag(ioctl_commands, TIOCREMOTE)
+#endif
+#ifdef TIOCGWINSZ
+	define_flag(ioctl_commands, TIOCGWINSZ)
+#endif
+#ifdef TIOCSWINSZ
+	define_flag(ioctl_commands, TIOCSWINSZ)
+#endif
+#ifdef TIOCUCNTL
+	define_flag(ioctl_commands, TIOCUCNTL)
+#endif
+#ifdef TIOCSTAT
+	define_flag(ioctl_commands, TIOCSTAT)
+#endif
+#ifdef TIOCSCONS
+	define_flag(ioctl_commands, TIOCSCONS)
+#endif
+#ifdef TIOCCONS
+	define_flag(ioctl_commands, TIOCCONS)
+#endif
+#ifdef TIOCSCTTY
+	define_flag(ioctl_commands, TIOCSCTTY)
+#endif
+#ifdef TIOCEXT
+	define_flag(ioctl_commands, TIOCEXT)
+#endif
+#ifdef TIOCSIG
+	define_flag(ioctl_commands, TIOCSIG)
+#endif
+#ifdef TIOCDRAIN
+	define_flag(ioctl_commands, TIOCDRAIN)
+#endif
+#ifdef TIOCMSDTRWAIT
+	define_flag(ioctl_commands, TIOCMSDTRWAIT)
+#endif
+#ifdef TIOCMGDTRWAIT
+	define_flag(ioctl_commands, TIOCMGDTRWAIT)
+#endif
+#ifdef TIOCTIMESTAMP
+	define_flag(ioctl_commands, TIOCTIMESTAMP)
+#endif
+#ifdef TIOCDCDTIMESTAMP
+	define_flag(ioctl_commands, TIOCDCDTIMESTAMP)
+#endif
+#ifdef TIOCSDRAINWAIT
+	define_flag(ioctl_commands, TIOCSDRAINWAIT)
+#endif
+#ifdef TIOCGDRAINWAIT
+	define_flag(ioctl_commands, TIOCGDRAINWAIT)
+#endif
+#ifdef TIOCDSIMICROCODE
+	define_flag(ioctl_commands, TIOCDSIMICROCODE)
+#endif
+#ifdef TIOCPTYGRANT
+	define_flag(ioctl_commands, TIOCPTYGRANT)
+#endif
+#ifdef TIOCPTYGNAME
+	define_flag(ioctl_commands, TIOCPTYGNAME)
+#endif
+#ifdef TIOCPTYUNLK
+	define_flag(ioctl_commands, TIOCPTYUNLK)
+#endif
+#ifdef TTYDISC
+	define_flag(line_disciplines, TTYDISC)
+#endif
+#ifdef TABLDISC
+	define_flag(line_disciplines, TABLDISC)
+#endif
+#ifdef SLIPDISC
+	define_flag(line_disciplines, SLIPDISC)
+#endif
+#ifdef PPPDISC
+	define_flag(line_disciplines, PPPDISC)
 #endif
 }

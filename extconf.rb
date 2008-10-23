@@ -2,6 +2,7 @@ require 'mkmf'
 
 if have_header('termios.h') &&
     have_header('unistd.h')
+  have_header('sys/ioctl.h')
 
   if RUBY_VERSION >= '1.7'
     if have_type("rb_io_t", ["ruby.h", "rubyio.h"])

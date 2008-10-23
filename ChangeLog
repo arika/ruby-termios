@@ -1,3 +1,15 @@
+2008-10-23  akira yamada  <akira@arika.org>
+
+	* termios.c: added IOCTL_COMMANDS, IOCTL_COMMAND_NAMES,
+	  MODEM_SIGNALS, MODEM_SIGNAL_NAMES, PTY_PACKET_OPTIONS,
+	  PTY_PACKET_OPTION_NAMES, LINE_DISCIPLINES and
+	  LINE_DISCIPLINE_NAMES.
+	
+	  This change is contributed from Chris Hoffman
+	  <chrishoffman_cardialife.com>.
+
+	* termios.c, extconf.rb: included <sys/ioctl.h>.
+
 2008-06-03  akira yamada  <akira@arika.org>
 
 	* extconf.rb, termios.c: adjusted rb_io_t/OpenFile checks for Ruby
