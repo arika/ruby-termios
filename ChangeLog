@@ -4,7 +4,7 @@
 
 	* README: converted to RDoc.
 
-	* termios.gemspec: added.
+	* ruby-termios.gemspec: added.
 
 2008-10-23  akira yamada  <akira@arika.org>
 
