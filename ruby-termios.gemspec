@@ -19,7 +19,6 @@ E
   s.rdoc_options = ["--title", "ruby-termios documentation", "--charset", "utf-8", "--opname", "index.html", "--line-numbers", "--main", "README", "--inline-source", "--exclude", "^(examples|extras)/"]
   s.require_paths = ["lib", "."]
   s.rubyforge_project = %q{termios}
-  s.rubygems_version = %q{1.2.0}
   s.summary = %q{a simple wrapper of termios(3)}
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
