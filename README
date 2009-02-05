@@ -1,32 +1,26 @@
-ruby-termios
-============
+= termios (ruby-termios) - a simple wrapper of termios(3)
 
-Description
------------
+== Description
 
-Ruby-termios enables you to use termios(3) interface.
+This extension library provides Termios module.  It enables you to use
+termios(3) interface.
 
-Termios module are simple wrapper for termios(3).  It can be included
-into IO-family classes and can extend IO-family objects.  In addition,
-the methods can use as module function.
+Termios module is simple wrapper of termios(3).  It can be included into
+IO-family classes and can extend IO-family objects.  In addition, the
+methods can use as module function.
 
+== Requires
 
-Requires
---------
+This extension library can use with Ruby 1.6, 1.8 or 1.9. (Ruby-termios can
+build with Ruby 1.6 but it has not yet been tested enough.) 
 
-  * Ruby 1.6, 1.8 or 1.9 (Ruby-termios can build with Ruby 1.6 but it has
-    not yet been tested enough.) 
+== Installation
 
-Installation
-------------
+ ruby extconf.rb
+ make
+ make install
 
-ruby extconf.rb
-make
-make install
-
-
-Copyright
----------
+== Copyright
 
 Ruby-termios for Ruby is copyrighted free software by akira yamada
 <akira@arika.org>.  You can redistribute it and/or modify it under either 

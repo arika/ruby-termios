@@ -95,7 +95,7 @@ module Termios
       str
     end
 
-    def pretty_print(q)
+    def pretty_print(q)	# :nodoc:
       q.object_group(self) {
         if self.ispeed == self.ospeed
           speed = (BAUDS[self.ispeed] || "B???").to_s[1..-1]

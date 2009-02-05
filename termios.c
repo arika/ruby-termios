@@ -35,6 +35,20 @@ static VALUE cTermios;
 static VALUE tcsetattr_opt, tcflush_qs, tcflow_act;
 static ID id_iflag, id_oflag, id_cflag, id_lflag, id_cc, id_ispeed, id_ospeed;
 
+/*
+ * Document-class: Termios::Termios
+ *
+ * Encupsalates termios parameters.
+ *
+ * See also: termios(3)
+ */
+
+/*
+ * call-seq:
+ *   termios.iflag = flag
+ *
+ * Updates input modes of the object.
+ */
 static VALUE
 termios_set_iflag(self, value)
     VALUE self, value;
@@ -44,6 +58,12 @@ termios_set_iflag(self, value)
     return value;
 }
 
+/*
+ * call-seq:
+ *   termios.oflag = flag
+ *
+ * Updates output modes of the object.
+ */
 static VALUE
 termios_set_oflag(self, value)
     VALUE self, value;
@@ -53,6 +73,12 @@ termios_set_oflag(self, value)
     return value;
 }
 
+/*
+ * call-seq:
+ *   termios.cflag = flag
+ *
+ * Updates control modes of the object.
+ */
 static VALUE
 termios_set_cflag(self, value)
     VALUE self, value;
@@ -62,6 +88,12 @@ termios_set_cflag(self, value)
     return value;
 }
 
+/*
+ * call-seq:
+ *   termios.lflag = flag
+ *
+ * Updates local modes of the object.
+ */
 static VALUE
 termios_set_lflag(self, value)
     VALUE self, value;
@@ -71,6 +103,12 @@ termios_set_lflag(self, value)
     return value;
 }
 
+/*
+ * call-seq:
+ *   termios.cc = value
+ *
+ * Updates control characters of the object.
+ */
 static VALUE
 termios_set_cc(self, value)
     VALUE self, value;
@@ -81,6 +119,12 @@ termios_set_cc(self, value)
     return value;
 }
 
+/*
+ * call-seq:
+ *   termios.ispeed = speed
+ *
+ * Updates input baud rate of the object.
+ */
 static VALUE
 termios_set_ispeed(self, value)
     VALUE self, value;
@@ -90,6 +134,12 @@ termios_set_ispeed(self, value)
     return value;
 }
 
+/*
+ * call-seq:
+ *   termios.ospeed = speed
+ *
+ * Updates output baud rate of the object.
+ */
 static VALUE
 termios_set_ospeed(self, value)
     VALUE self, value;
@@ -99,6 +149,12 @@ termios_set_ospeed(self, value)
     return value;
 }
 
+/*
+ * call-seq:
+ *   Termios.new
+ *
+ * Returns new Termios::Termios object.
+ */
 static VALUE
 termios_initialize(argc, argv, self)
     int argc;
@@ -150,6 +206,35 @@ termios_initialize(argc, argv, self)
     return self;
 }
 
+/*
+ * Document-module: Termios
+ *
+ * = Description
+ *
+ * Termios module is simple wrapper of termios(3).  It can be included
+ * into IO-family classes and can extend IO-family objects.  In addition,
+ * the methods can use as module function.
+ *
+ * You can call termios(3) function as module methods.  Or you can use these
+ * methods as instance method by including Termios module to the target IO
+ * object.
+ *
+ * == Constants
+ *
+ * Many constants which are derived from "termios.h" are defined on Termios
+ * module.  You can use these constants as the same name in "termios.h"
+ * basically.
+ *
+ * IFLAGS, OFLAGS, CFLAGS and LFLAGS are Hash object.  They contains Symbols
+ * of constants for c_iflag, c_oflag, c_cflag and c_lflag.  CCINDEX and BAUDS
+ * are Hash object too.  They contains Symbols of constats for c_cc or ispeed
+ * and ospeed.
+ *
+ * == See also
+ *
+ * termios(3)
+ */
+
 static VALUE
 termios_to_Termios(t)
     struct termios *t;
@@ -199,7 +284,25 @@ Termios_to_termios(obj, t)
     cfsetospeed(t, NUM2ULONG(rb_ivar_get(obj, id_ospeed)));
 }
 
-
+/*
+ * call-seq:
+ *   Termios.tcgetattr(io)
+ *   io.tcgetattr
+ *
+ * Returns new Termios::Termios object which stores termios parameters
+ * associated with the io.
+ *
+ *   require 'termios'
+ *
+ *   Termios.tcgetattr($stdin)
+ *     #=> #<Termios::Termios speed 38400 baud; intr=^C ... >
+ *
+ *   $stdout.extend(Termios)
+ *   $stdout.tcgetattr
+ *     #=> #<Termios::Termios speed 38400 baud; intr=^C ... >
+ *
+ * See also: tcgetattr(3)
+ */
 static VALUE
 termios_tcgetattr(io)
     VALUE io;
@@ -223,6 +326,38 @@ termios_s_tcgetattr(obj, io)
     return termios_tcgetattr(io);
 }
 
+/*
+ * call-seq:
+ *   Termios.tcsetattr(io, option, termios)
+ *   io.tcsetattr(option, termios)
+ *
+ * Sets the Termios::Termios object as the termios paramter to the io
+ * and returns the old termios parameter.
+ *
+ * Option are specifies when the parameter is changed.  What option are
+ * available is plathome dependent, but usually Termios::TCSANOW,
+ * Termios::TCSADRAIN and Termios::TCSAFLUSH are provided.
+ *
+ *   require 'termios'
+ *
+ *   oldt = Termios.tcgetattr($stdin)
+ *   newt = oldt.dup
+ *   newt.lflag &= ~Termios::ECHO
+ *
+ *   secret = nil
+ *   begin
+ *     Termios.tcsetattr($stdin, Termios::TCSANOW, newt)
+ *     print "noecho> "
+ *     secret = $stdin.gets
+ *     print "\n"
+ *   ensure
+ *     Termios.tcsetattr($stdin, Termios::TCSANOW, oldt)
+ *   end
+ *
+ *   puts secret
+ *
+ * See also: tcsetattr(3)
+ */
 static VALUE
 termios_tcsetattr(io, opt, param)
     VALUE io, opt, param;
@@ -264,6 +399,15 @@ termios_s_tcsetattr(obj, io, opt, param)
     return termios_tcsetattr(io, opt, param);
 }
 
+/*
+ * call-seq:
+ *   Termios.tcsendbreak(io, duration)
+ *   io.tcsendbreak(duration)
+ *
+ * Sends a continuous stream of 0-bits for a specific duration.
+ *
+ * See also: tcsendbreak(3)
+ */
 static VALUE
 termios_tcsendbreak(io, duration)
     VALUE io, duration;
@@ -288,6 +432,15 @@ termios_s_tcsendbreak(obj, io, duration)
     return termios_tcsendbreak(io, duration);
 }
 
+/*
+ * call-seq:
+ *   Termios.tcdrain(io)
+ *   io.tcdrain
+ *
+ * Waits until all output to the object has been sent.
+ *
+ * See also: tcdrain(3)
+ */
 static VALUE
 termios_tcdrain(io)
     VALUE io;
@@ -311,6 +464,16 @@ termios_s_tcdrain(obj, io)
     return termios_tcdrain(io);
 }
 
+/*
+ * call-seq:
+ *   Termios.tcflush(io, qs)
+ *   io.tcflush(qs)
+ *
+ * Cancels data written to the object but not send or data received but not
+ * read.
+ *
+ * See also: tcflush(3)
+ */
 static VALUE
 termios_tcflush(io, qs)
     VALUE io, qs;
@@ -341,6 +504,15 @@ termios_s_tcflush(obj, io, qs)
     return termios_tcflush(io, qs);
 }
 
+/*
+ * call-seq:
+ *   Termios.tcflow(io, action)
+ *   io.tcflow(action)
+ *
+ * Suspends write or read of data on the object.
+ *
+ * See also: tcflow(3)
+ */
 static VALUE
 termios_tcflow(io, act)
     VALUE io, act;
@@ -371,6 +543,16 @@ termios_s_tcflow(obj, io, act)
     return termios_tcflow(io, act);
 }
 
+/*
+ * call-seq:
+ *   Termios.tcgetpgrp(io)
+ *   io.tcgetpgrp
+ *
+ * Returns the process group ID of the foreground process group  the
+ * terminal associated to the object.
+ *
+ * See also: tcgetpgrp(3)
+ */
 static VALUE
 termios_tcgetpgrp(io)
     VALUE io;
@@ -394,6 +576,16 @@ termios_s_tcgetpgrp(obj, io)
     return termios_tcgetpgrp(io);
 }
 
+/*
+ * call-seq:
+ *   Termios.tcsetpgrp(io, pgrpid)
+ *   io.tcsetpgrp(pgrpid)
+ *
+ * Makes the process group with pgrpid the foreground process group on the
+ * terminal associated to the object.
+ *
+ * See also: tcsetpgrp(3)
+ */
 static VALUE
 termios_tcsetpgrp(io, pgrpid)
     VALUE io, pgrpid;
@@ -419,6 +611,12 @@ termios_s_tcsetpgrp(obj, io, pgrpid)
     return termios_tcsetpgrp(io, pgrpid);
 }
 
+/*
+ * call-seq:
+ *   Termios.new_termios
+ *
+ * Returns new Termios::Termios object.
+ */
 static VALUE
 termios_s_newtermios(argc, argv, klass)
     int argc;
@@ -428,13 +626,19 @@ termios_s_newtermios(argc, argv, klass)
     return rb_funcall2(cTermios, rb_intern("new"), argc, argv);
 }
 
+/*
+ * call-seq:
+ *   termios.dup
+ *
+ * Produces a shallow copy of the object.
+ */
 static VALUE
 termios_dup(self)
     VALUE self;
 {
     VALUE result;
     VALUE cc_ary;
-    
+
     result = rb_call_super(0, 0);
     cc_ary = rb_ivar_get(self, id_cc);
     rb_ivar_set(result, id_cc, rb_ary_dup(cc_ary));
@@ -506,13 +710,20 @@ Init_termios()
     id_ispeed = rb_intern("@ispeed");
     id_ospeed = rb_intern("@ospeed");
 
-    rb_attr(cTermios, rb_intern("iflag"),  1, 0, Qfalse);
-    rb_attr(cTermios, rb_intern("oflag"),  1, 0, Qfalse);
-    rb_attr(cTermios, rb_intern("cflag"),  1, 0, Qfalse);
-    rb_attr(cTermios, rb_intern("lflag"),  1, 0, Qfalse);
-    rb_attr(cTermios, rb_intern("cc"),     1, 0, Qfalse);
-    rb_attr(cTermios, rb_intern("ispeed"), 1, 0, Qfalse);
-    rb_attr(cTermios, rb_intern("ospeed"), 1, 0, Qfalse);
+    /* input modes */
+    rb_define_attr(cTermios, "iflag",  1, 0);
+    /* output modes */
+    rb_define_attr(cTermios, "oflag",  1, 0);
+    /* control modes */
+    rb_define_attr(cTermios, "cflag",  1, 0);
+    /* local modes */
+    rb_define_attr(cTermios, "lflag",  1, 0);
+    /* control characters */
+    rb_define_attr(cTermios, "cc",     1, 0);
+    /* input baud rate */
+    rb_define_attr(cTermios, "ispeed", 1, 0);
+    /* output baud rate */
+    rb_define_attr(cTermios, "ospeed", 1, 0);
 
     rb_define_private_method(cTermios, "initialize", termios_initialize, -1);
     rb_define_method(cTermios, "dup", termios_dup, 0);
@@ -543,67 +754,83 @@ Init_termios()
 
     /* constants under Termios module */
 
+    /* number of control characters */
     rb_define_const(mTermios, "NCCS",    INT2FIX(NCCS));
     rb_define_const(mTermios, "POSIX_VDISABLE", INT2FIX(_POSIX_VDISABLE));
 
     ccindex = rb_hash_new();
     ccindex_names = rb_ary_new();
+    /* Hash of control character index and control character names */
     rb_define_const(mTermios, "CCINDEX", ccindex);
+    /* List of control character names */
     rb_define_const(mTermios, "CCINDEX_NAMES", ccindex_names);
 
     iflags = rb_hash_new();
     iflags_names = rb_ary_new();
+    /* Hash of input mode names and values */
     rb_define_const(mTermios, "IFLAGS", iflags);
+    /* List of input mode names */
     rb_define_const(mTermios, "IFLAG_NAMES", iflags_names);
 
     oflags = rb_hash_new();
     oflags_names = rb_ary_new();
     oflags_choices = rb_hash_new();
+    /* Hash of output mode names and values */
     rb_define_const(mTermios, "OFLAGS", oflags);
+    /* List of output mode names */
     rb_define_const(mTermios, "OFLAG_NAMES", oflags_names);
     rb_define_const(mTermios, "OFLAG_CHOICES", oflags_choices);
 
     cflags = rb_hash_new();
     cflags_names = rb_ary_new();
     cflags_choices = rb_hash_new();
+    /* Hash of control mode names and values */
     rb_define_const(mTermios, "CFLAGS", cflags);
+    /* List of control mode names */
     rb_define_const(mTermios, "CFLAG_NAMES", cflags_names);
     rb_define_const(mTermios, "CFLAG_CHOICES", cflags_choices);
 
     lflags = rb_hash_new();
     lflags_names = rb_ary_new();
+    /* Hash of local mode names and values */
     rb_define_const(mTermios, "LFLAGS", lflags);
+    /* List of local mode names */
     rb_define_const(mTermios, "LFLAG_NAMES", lflags_names);
 
     bauds = rb_hash_new();
     bauds_names = rb_ary_new();
+    /* List of baud rates */
     rb_define_const(mTermios, "BAUDS", bauds);
+    /* List of baud rate names */
     rb_define_const(mTermios, "BAUD_NAMES", bauds_names);
 
     tcsetattr_opt = rb_ary_new();
+    /* List of tcsetattr options */
     rb_define_const(mTermios, "SETATTR_OPTS", tcsetattr_opt);
 
     tcflush_qs = rb_ary_new();
+    /* List of tcflush qselectors */
     rb_define_const(mTermios, "FLUSH_QSELECTORS", tcflush_qs);
 
     tcflow_act = rb_ary_new();
+    /* List of tcflow actions */
     rb_define_const(mTermios, "FLOW_ACTIONS", tcflow_act);
-    
+
     ioctl_commands = rb_hash_new();
     ioctl_commands_names = rb_ary_new();
     rb_define_const(mTermios, "IOCTL_COMMANDS", ioctl_commands);
     rb_define_const(mTermios, "IOCTL_COMMAND_NAMES", ioctl_commands_names);
-    
+
     modem_signals = rb_hash_new();
     modem_signals_names = rb_ary_new();
     rb_define_const(mTermios, "MODEM_SIGNALS", modem_signals);
     rb_define_const(mTermios, "MODEM_SIGNAL_NAMES", modem_signals_names);
-    
+
     pty_pkt_options = rb_hash_new();
     pty_pkt_options_names = rb_ary_new();
     rb_define_const(mTermios, "PTY_PACKET_OPTIONS", pty_pkt_options);
     rb_define_const(mTermios, "PTY_PACKET_OPTION_NAMES", pty_pkt_options_names);
-    
+
     line_disciplines = rb_hash_new();
     line_disciplines_names = rb_ary_new();
     rb_define_const(mTermios, "LINE_DISCIPLINES", line_disciplines);
