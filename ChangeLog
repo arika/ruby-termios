@@ -1,3 +1,7 @@
+2009-08-28  akira yamada  <akira@arika.org>
+
+	* version 0.9.6.
+
 2009-02-05  akira yamada  <akira@arika.org>
 
 	* termios.c: added RDoc.
