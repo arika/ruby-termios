@@ -834,7 +834,7 @@ Init_termios()
     line_disciplines = rb_hash_new();
     line_disciplines_names = rb_ary_new();
     rb_define_const(mTermios, "LINE_DISCIPLINES", line_disciplines);
-    rb_define_const(mTermios, "LINE_DISCIPLINE_NAMES", line_disciplines);
+    rb_define_const(mTermios, "LINE_DISCIPLINE_NAMES", line_disciplines_names);
 
 #define define_flag(hash, flag) \
     { \

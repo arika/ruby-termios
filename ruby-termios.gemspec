@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = %q{ruby-termios}
-  s.version = "0.9.6"
-  s.date = %q{2009-08-28}
+  s.version = "1.0.0"
+  s.date = %q{2013-04-11}
 
   s.authors = ["akira yamada"]
   s.email = %q{akira@arika.org}
