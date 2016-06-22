@@ -1,5 +1,9 @@
 require 'mkmf'
 
+Dir.glob('./lib/**/*.rb') do |f|
+  $INSTALLFILES << [f, '$(RUBYLIBDIR)', 'lib']
+end
+
 if have_header('termios.h') &&
     have_header('unistd.h')
   have_header('sys/ioctl.h')
