@@ -1,33 +1,30 @@
-Gem::Specification.new do |s|
-  s.name = %q{ruby-termios}
-  s.version = "1.0.0"
-  s.date = %q{2013-04-11}
+# coding: utf-8
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'termios/version'
 
-  s.authors = ["akira yamada"]
-  s.email = %q{akira@arika.org}
-  s.description = <<E
-Termios module is simple wrapper of termios(3).  It can be included into
-IO-family classes and can extend IO-family objects.  In addition, the methods
-can use as module function.
-E
-  s.extra_rdoc_files = ["README", "ChangeLog"]
-  s.extensions = ["ext/extconf.rb"]
-  s.files = ["README", "ChangeLog", "test/test0.rb", "lib/termios.rb", "examples/secret_input1.rb", "examples/modem_check2.rb", "examples/modem_check0.rb", "examples/secret_input2.rb", "examples/modem_check1.rb", "ext/termios.c"]
-  s.bindir = false
-  s.has_rdoc = true
-  s.homepage = %q{http://arika.org/ruby/termios}
-  s.rdoc_options = ["--title", "ruby-termios documentation", "--charset", "utf-8", "--opname", "index.html", "--line-numbers", "--main", "README", "--inline-source", "--exclude", "^(examples|extras)/"]
-  s.rubyforge_project = %q{termios}
-  s.summary = %q{a simple wrapper of termios(3)}
+Gem::Specification.new do |spec|
+  spec.name          = 'ruby-termios'
+  spec.version       = Termios::VERSION
+  spec.authors       = ['akira yamada']
+  spec.email         = ['akira@arika.org']
 
-  s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  if s.respond_to? :specification_version then
-    current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
-    s.specification_version = 2
+  spec.summary       = 'a simple wrapper of termios(3)'
+  spec.description   = <<-E
+Termios module is simple wrapper of termios(3).
+It can be included into IO-family classes and can extend IO-family objects.
+In addition, the methods can use as module function.
+                       E
+  spec.homepage      = 'https://github.com/arika/ruby-termios'
+  spec.license       = "Ruby's"
 
-    if current_version >= 3 then
-    else
-    end
-  else
-  end
+  spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
+  spec.bindir        = 'exe'
+  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.require_paths = ['lib']
+  spec.extensions    = ['ext/extconf.rb']
+
+  spec.add_development_dependency 'bundler', '~> 1.12'
+  spec.add_development_dependency 'rake', '~> 10.0'
+  spec.add_development_dependency 'rake-compiler'
 end
