@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ruby: ['3.2', '3.3', '3.4', '4.0']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Compile
+        run: bundle exec rake compile
+      # test/test0.rb needs a terminal on stdin, so run it under a pseudo-terminal.
+      - name: Test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          script -qec 'bundle exec ruby -Ilib test/test0.rb' /dev/null
+          script -qec 'bundle exec ruby -Ilib test/test_ractor.rb' /dev/null
+      - name: Test (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          script -q /dev/null bundle exec ruby -Ilib test/test0.rb
+          script -q /dev/null bundle exec ruby -Ilib test/test_ractor.rb
+      - name: Build gem
+        run: gem build ruby-termios.gemspec
