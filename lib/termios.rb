@@ -41,6 +41,7 @@ module Termios
   }
   VISIBLE_CHAR[POSIX_VDISABLE] = "<undef>"
   VISIBLE_CHAR[[POSIX_VDISABLE].pack("C")] = "<undef>"
+  Ractor.make_shareable(VISIBLE_CHAR)
 
   class Termios
     def inspect
