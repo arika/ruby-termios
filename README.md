@@ -43,4 +43,4 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/arika/
 
 ## License
 
-The gem is available as open source under the terms of the [Ruby's Licens](https://www.ruby-lang.org/en/about/license.txt).
+The gem is available as open source under the terms of the [Ruby's License](https://www.ruby-lang.org/en/about/license.txt).

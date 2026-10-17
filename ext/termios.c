@@ -6,27 +6,14 @@
  */
 
 #include "ruby.h"
-#if defined(HAVE_RUBY_IO_H)
 #include "ruby/io.h"
-#else
-#include "rubyio.h"
-#endif
+#include "ruby/ractor.h"
 #include <termios.h>
-#include <sys/ioctl.h>
-#if defined(HAVE_SYS_IOCTL_H)
 #include <unistd.h>
+#if defined(HAVE_SYS_IOCTL_H)
+#include <sys/ioctl.h>
 #endif
 #include <string.h>
-
-#if defined(HAVE_TYPE_RB_IO_T) && !defined(HAVE_MACRO_OPENFILE)
-typedef rb_io_t OpenFile;
-#endif
-
-#if defined(HAVE_ST_FD)
-#define FILENO(fptr) (fptr->fd)
-#else
-#define FILENO(fptr) fileno(fptr->f)
-#endif
 
 #define validate_ulong(v) ULONG2NUM(NUM2ULONG(v))
 
@@ -50,8 +37,7 @@ static ID id_iflag, id_oflag, id_cflag, id_lflag, id_cc, id_ispeed, id_ospeed;
  * Updates input modes of the object.
  */
 static VALUE
-termios_set_iflag(self, value)
-    VALUE self, value;
+termios_set_iflag(VALUE self, VALUE value)
 {
     rb_ivar_set(self, id_iflag, validate_ulong(value));
 
@@ -65,8 +51,7 @@ termios_set_iflag(self, value)
  * Updates output modes of the object.
  */
 static VALUE
-termios_set_oflag(self, value)
-    VALUE self, value;
+termios_set_oflag(VALUE self, VALUE value)
 {
     rb_ivar_set(self, id_oflag, validate_ulong(value));
 
@@ -80,8 +65,7 @@ termios_set_oflag(self, value)
  * Updates control modes of the object.
  */
 static VALUE
-termios_set_cflag(self, value)
-    VALUE self, value;
+termios_set_cflag(VALUE self, VALUE value)
 {
     rb_ivar_set(self, id_cflag, validate_ulong(value));
 
@@ -95,8 +79,7 @@ termios_set_cflag(self, value)
  * Updates local modes of the object.
  */
 static VALUE
-termios_set_lflag(self, value)
-    VALUE self, value;
+termios_set_lflag(VALUE self, VALUE value)
 {
     rb_ivar_set(self, id_lflag, validate_ulong(value));
 
@@ -110,8 +93,7 @@ termios_set_lflag(self, value)
  * Updates control characters of the object.
  */
 static VALUE
-termios_set_cc(self, value)
-    VALUE self, value;
+termios_set_cc(VALUE self, VALUE value)
 {
     Check_Type(value, T_ARRAY);
     rb_ivar_set(self, id_cc, value);
@@ -126,8 +108,7 @@ termios_set_cc(self, value)
  * Updates input baud rate of the object.
  */
 static VALUE
-termios_set_ispeed(self, value)
-    VALUE self, value;
+termios_set_ispeed(VALUE self, VALUE value)
 {
     rb_ivar_set(self, id_ispeed, validate_ulong(value));
 
@@ -141,8 +122,7 @@ termios_set_ispeed(self, value)
  * Updates output baud rate of the object.
  */
 static VALUE
-termios_set_ospeed(self, value)
-    VALUE self, value;
+termios_set_ospeed(VALUE self, VALUE value)
 {
     rb_ivar_set(self, id_ospeed, validate_ulong(value));
 
@@ -156,16 +136,13 @@ termios_set_ospeed(self, value)
  * Returns new Termios::Termios object.
  */
 static VALUE
-termios_initialize(argc, argv, self)
-    int argc;
-    VALUE *argv;
-    VALUE self;
+termios_initialize(int argc, VALUE *argv, VALUE self)
 {
     VALUE c_iflag, c_oflag, c_cflag, c_lflag, c_cc, c_ispeed, c_ospeed;
     VALUE cc_ary;
     int i;
 
-    cc_ary = rb_ary_new2(NCCS);
+    cc_ary = rb_ary_new_capa(NCCS);
     for (i = 0; i < NCCS; i++) {
 	rb_ary_store(cc_ary, i, INT2FIX(0));
     }
@@ -178,8 +155,8 @@ termios_initialize(argc, argv, self)
     rb_ivar_set(self, id_ispeed, INT2FIX(0));
     rb_ivar_set(self, id_ospeed, INT2FIX(0));
 
-    rb_scan_args(argc, argv, "07", 
-		 &c_iflag, &c_oflag, &c_cflag, &c_lflag, 
+    rb_scan_args(argc, argv, "07",
+		 &c_iflag, &c_oflag, &c_cflag, &c_lflag,
 		 &c_cc, &c_ispeed, &c_ospeed);
 
     if (!NIL_P(c_iflag))
@@ -201,7 +178,7 @@ termios_initialize(argc, argv, self)
 	termios_set_ispeed(self, c_ispeed);
 
     if (!NIL_P(c_ospeed))
-	termios_set_ispeed(self, c_ospeed);
+	termios_set_ospeed(self, c_ospeed);
 
     return self;
 }
@@ -236,20 +213,19 @@ termios_initialize(argc, argv, self)
  */
 
 static VALUE
-termios_to_Termios(t)
-    struct termios *t;
+termios_to_Termios(struct termios *t)
 {
     int i;
     VALUE obj, cc_ary;
 
-    obj = rb_funcall(cTermios, rb_intern("new"), 0);
+    obj = rb_class_new_instance(0, NULL, cTermios);
 
     termios_set_iflag(obj, ULONG2NUM(t->c_iflag));
     termios_set_oflag(obj, ULONG2NUM(t->c_oflag));
     termios_set_cflag(obj, ULONG2NUM(t->c_cflag));
     termios_set_lflag(obj, ULONG2NUM(t->c_lflag));
 
-    cc_ary = rb_ary_new2(NCCS);
+    cc_ary = rb_ary_new_capa(NCCS);
     for (i = 0; i < NCCS; i++) {
 	rb_ary_store(cc_ary, i, CHR2FIX(t->c_cc[i]));
     }
@@ -262,17 +238,15 @@ termios_to_Termios(t)
 }
 
 static void
-Termios_to_termios(obj, t)
-    VALUE obj;
-    struct termios *t;
+Termios_to_termios(VALUE obj, struct termios *t)
 {
     int i;
     VALUE cc_ary;
 
-    t->c_iflag = NUM2ULONG(rb_ivar_get(obj, id_iflag));
-    t->c_oflag = NUM2ULONG(rb_ivar_get(obj, id_oflag));
-    t->c_cflag = NUM2ULONG(rb_ivar_get(obj, id_cflag));
-    t->c_lflag = NUM2ULONG(rb_ivar_get(obj, id_lflag));
+    t->c_iflag = (tcflag_t)NUM2ULONG(rb_ivar_get(obj, id_iflag));
+    t->c_oflag = (tcflag_t)NUM2ULONG(rb_ivar_get(obj, id_oflag));
+    t->c_cflag = (tcflag_t)NUM2ULONG(rb_ivar_get(obj, id_cflag));
+    t->c_lflag = (tcflag_t)NUM2ULONG(rb_ivar_get(obj, id_lflag));
 
     cc_ary = rb_ivar_get(obj, id_cc);
     for (i = 0; i < NCCS; i++) {
@@ -280,8 +254,8 @@ Termios_to_termios(obj, t)
         t->c_cc[i] = NUM2CHR(elt);
     }
 
-    cfsetispeed(t, NUM2ULONG(rb_ivar_get(obj, id_ispeed)));
-    cfsetospeed(t, NUM2ULONG(rb_ivar_get(obj, id_ospeed)));
+    cfsetispeed(t, (speed_t)NUM2ULONG(rb_ivar_get(obj, id_ispeed)));
+    cfsetospeed(t, (speed_t)NUM2ULONG(rb_ivar_get(obj, id_ospeed)));
 }
 
 /*
@@ -304,15 +278,12 @@ Termios_to_termios(obj, t)
  * See also: tcgetattr(3)
  */
 static VALUE
-termios_tcgetattr(io)
-    VALUE io;
+termios_tcgetattr(VALUE io)
 {
     struct termios t;
-    OpenFile *fptr;
 
     Check_Type(io, T_FILE);
-    GetOpenFile(io, fptr);
-    if (tcgetattr(FILENO(fptr), &t) < 0) {
+    if (tcgetattr(rb_io_descriptor(io), &t) < 0) {
         rb_sys_fail("tcgetattr");
     }
 
@@ -320,8 +291,7 @@ termios_tcgetattr(io)
 }
 
 static VALUE
-termios_s_tcgetattr(obj, io)
-    VALUE obj, io;
+termios_s_tcgetattr(VALUE obj, VALUE io)
 {
     return termios_tcgetattr(io);
 }
@@ -359,33 +329,29 @@ termios_s_tcgetattr(obj, io)
  * See also: tcsetattr(3)
  */
 static VALUE
-termios_tcsetattr(io, opt, param)
-    VALUE io, opt, param;
+termios_tcsetattr(VALUE io, VALUE opt, VALUE param)
 {
     VALUE old;
-    OpenFile *fptr;
     struct termios t;
     int tcsetattr_option;
 
     Check_Type(io,  T_FILE);
     Check_Type(opt, T_FIXNUM);
     if (CLASS_OF(param) != cTermios) {
-	const char *type = rb_class2name(CLASS_OF(param));
-	rb_raise(rb_eTypeError, 
-		 "wrong argument type %s (expected Termios::Termios)", 
-		 type);
+	rb_raise(rb_eTypeError,
+		 "wrong argument type %"PRIsVALUE" (expected Termios::Termios)",
+		 rb_obj_class(param));
     }
 
     tcsetattr_option = FIX2INT(opt);
     if (rb_ary_includes(tcsetattr_opt, opt) != Qtrue) {
-	rb_raise(rb_eArgError, 
+	rb_raise(rb_eArgError,
 		 "wrong option value %d", tcsetattr_option);
     }
 
     old = termios_tcgetattr(io);
-    GetOpenFile(io, fptr);
     Termios_to_termios(param, &t);
-    if (tcsetattr(FILENO(fptr), tcsetattr_option, &t) < 0) {
+    if (tcsetattr(rb_io_descriptor(io), tcsetattr_option, &t) < 0) {
         rb_sys_fail("tcsetattr");
     }
 
@@ -393,8 +359,7 @@ termios_tcsetattr(io, opt, param)
 }
 
 static VALUE
-termios_s_tcsetattr(obj, io, opt, param)
-    VALUE obj, io, opt, param;
+termios_s_tcsetattr(VALUE obj, VALUE io, VALUE opt, VALUE param)
 {
     return termios_tcsetattr(io, opt, param);
 }
@@ -409,16 +374,12 @@ termios_s_tcsetattr(obj, io, opt, param)
  * See also: tcsendbreak(3)
  */
 static VALUE
-termios_tcsendbreak(io, duration)
-    VALUE io, duration;
+termios_tcsendbreak(VALUE io, VALUE duration)
 {
-    OpenFile *fptr;
-
     Check_Type(io,       T_FILE);
     Check_Type(duration, T_FIXNUM);
 
-    GetOpenFile(io, fptr);
-    if (tcsendbreak(FILENO(fptr), FIX2INT(duration)) < 0) {
+    if (tcsendbreak(rb_io_descriptor(io), FIX2INT(duration)) < 0) {
         rb_sys_fail("tcsendbreak");
     }
 
@@ -426,8 +387,7 @@ termios_tcsendbreak(io, duration)
 }
 
 static VALUE
-termios_s_tcsendbreak(obj, io, duration)
-    VALUE obj, io, duration;
+termios_s_tcsendbreak(VALUE obj, VALUE io, VALUE duration)
 {
     return termios_tcsendbreak(io, duration);
 }
@@ -442,15 +402,11 @@ termios_s_tcsendbreak(obj, io, duration)
  * See also: tcdrain(3)
  */
 static VALUE
-termios_tcdrain(io)
-    VALUE io;
+termios_tcdrain(VALUE io)
 {
-    OpenFile *fptr;
-
     Check_Type(io, T_FILE);
 
-    GetOpenFile(io, fptr);
-    if (tcdrain(FILENO(fptr)) < 0) {
+    if (tcdrain(rb_io_descriptor(io)) < 0) {
         rb_sys_fail("tcdrain");
     }
 
@@ -458,8 +414,7 @@ termios_tcdrain(io)
 }
 
 static VALUE
-termios_s_tcdrain(obj, io)
-    VALUE obj, io;
+termios_s_tcdrain(VALUE obj, VALUE io)
 {
     return termios_tcdrain(io);
 }
@@ -475,22 +430,19 @@ termios_s_tcdrain(obj, io)
  * See also: tcflush(3)
  */
 static VALUE
-termios_tcflush(io, qs)
-    VALUE io, qs;
+termios_tcflush(VALUE io, VALUE qs)
 {
-    OpenFile *fptr;
     int queue_selector;
 
     Check_Type(io, T_FILE);
     Check_Type(qs, T_FIXNUM);
     queue_selector = FIX2INT(qs);
     if (rb_ary_includes(tcflush_qs, qs) != Qtrue) {
-	rb_raise(rb_eArgError, 
+	rb_raise(rb_eArgError,
 		 "wrong queue-selector value %d", queue_selector);
     }
 
-    GetOpenFile(io, fptr);
-    if (tcflush(FILENO(fptr), queue_selector) < 0) {
+    if (tcflush(rb_io_descriptor(io), queue_selector) < 0) {
         rb_sys_fail("tcflush");
     }
 
@@ -498,8 +450,7 @@ termios_tcflush(io, qs)
 }
 
 static VALUE
-termios_s_tcflush(obj, io, qs)
-    VALUE obj, io, qs;
+termios_s_tcflush(VALUE obj, VALUE io, VALUE qs)
 {
     return termios_tcflush(io, qs);
 }
@@ -514,22 +465,19 @@ termios_s_tcflush(obj, io, qs)
  * See also: tcflow(3)
  */
 static VALUE
-termios_tcflow(io, act)
-    VALUE io, act;
+termios_tcflow(VALUE io, VALUE act)
 {
-    OpenFile *fptr;
     int action;
 
     Check_Type(io,  T_FILE);
     Check_Type(act, T_FIXNUM);
     action = FIX2INT(act);
     if (rb_ary_includes(tcflow_act, act) != Qtrue) {
-	rb_raise(rb_eArgError, 
+	rb_raise(rb_eArgError,
 		 "wrong action value %d", action);
     }
 
-    GetOpenFile(io, fptr);
-    if (tcflow(FILENO(fptr), action) < 0) {
+    if (tcflow(rb_io_descriptor(io), action) < 0) {
         rb_sys_fail("tcflow");
     }
 
@@ -537,8 +485,7 @@ termios_tcflow(io, act)
 }
 
 static VALUE
-termios_s_tcflow(obj, io, act)
-    VALUE obj, io, act;
+termios_s_tcflow(VALUE obj, VALUE io, VALUE act)
 {
     return termios_tcflow(io, act);
 }
@@ -554,24 +501,20 @@ termios_s_tcflow(obj, io, act)
  * See also: tcgetpgrp(3)
  */
 static VALUE
-termios_tcgetpgrp(io)
-    VALUE io;
+termios_tcgetpgrp(VALUE io)
 {
-    OpenFile *fptr;
     pid_t pid;
 
     Check_Type(io,  T_FILE);
-    GetOpenFile(io, fptr);
-    if ((pid = tcgetpgrp(FILENO(fptr))) < 0) {
+    if ((pid = tcgetpgrp(rb_io_descriptor(io))) < 0) {
         rb_sys_fail("tcgetpgrp");
     }
 
-    return LONG2NUM(pid);
+    return PIDT2NUM(pid);
 }
 
 static VALUE
-termios_s_tcgetpgrp(obj, io)
-    VALUE obj, io;
+termios_s_tcgetpgrp(VALUE obj, VALUE io)
 {
     return termios_tcgetpgrp(io);
 }
@@ -587,17 +530,14 @@ termios_s_tcgetpgrp(obj, io)
  * See also: tcsetpgrp(3)
  */
 static VALUE
-termios_tcsetpgrp(io, pgrpid)
-    VALUE io, pgrpid;
+termios_tcsetpgrp(VALUE io, VALUE pgrpid)
 {
-    OpenFile *fptr;
     pid_t pgrp;
 
     Check_Type(io,     T_FILE);
-    pgrp = NUM2LONG(pgrpid);
+    pgrp = NUM2PIDT(pgrpid);
 
-    GetOpenFile(io, fptr);
-    if (tcsetpgrp(FILENO(fptr), pgrp) < 0) {
+    if (tcsetpgrp(rb_io_descriptor(io), pgrp) < 0) {
         rb_sys_fail("tcsetpgrp");
     }
 
@@ -605,8 +545,7 @@ termios_tcsetpgrp(io, pgrpid)
 }
 
 static VALUE
-termios_s_tcsetpgrp(obj, io, pgrpid)
-    VALUE obj, io, pgrpid;
+termios_s_tcsetpgrp(VALUE obj, VALUE io, VALUE pgrpid)
 {
     return termios_tcsetpgrp(io, pgrpid);
 }
@@ -618,12 +557,9 @@ termios_s_tcsetpgrp(obj, io, pgrpid)
  * Returns new Termios::Termios object.
  */
 static VALUE
-termios_s_newtermios(argc, argv, klass)
-    int argc;
-    VALUE *argv;
-    VALUE klass;
+termios_s_newtermios(int argc, VALUE *argv, VALUE klass)
 {
-    return rb_funcall2(cTermios, rb_intern("new"), argc, argv);
+    return rb_class_new_instance(argc, argv, cTermios);
 }
 
 /*
@@ -633,8 +569,7 @@ termios_s_newtermios(argc, argv, klass)
  * Produces a shallow copy of the object.
  */
 static VALUE
-termios_dup(self)
-    VALUE self;
+termios_dup(VALUE self)
 {
     VALUE result;
     VALUE cc_ary;
@@ -646,8 +581,8 @@ termios_dup(self)
     return result;
 }
 
-void
-Init_termios()
+RUBY_FUNC_EXPORTED void
+Init_termios(void)
 {
     VALUE ccindex, ccindex_names;
     VALUE iflags, iflags_names;
@@ -659,6 +594,8 @@ Init_termios()
     VALUE modem_signals, modem_signals_names;
     VALUE pty_pkt_options, pty_pkt_options_names;
     VALUE line_disciplines, line_disciplines_names;
+
+    rb_ext_ractor_safe(true);
 
     /* module Termios */
 
@@ -1534,4 +1471,31 @@ Init_termios()
 #ifdef PPPDISC
 	define_flag(line_disciplines, PPPDISC)
 #endif
+
+    /* make the lookup tables shareable so that they can be used from any Ractor */
+    rb_ractor_make_shareable(ccindex);
+    rb_ractor_make_shareable(ccindex_names);
+    rb_ractor_make_shareable(iflags);
+    rb_ractor_make_shareable(iflags_names);
+    rb_ractor_make_shareable(oflags);
+    rb_ractor_make_shareable(oflags_names);
+    rb_ractor_make_shareable(oflags_choices);
+    rb_ractor_make_shareable(cflags);
+    rb_ractor_make_shareable(cflags_names);
+    rb_ractor_make_shareable(cflags_choices);
+    rb_ractor_make_shareable(lflags);
+    rb_ractor_make_shareable(lflags_names);
+    rb_ractor_make_shareable(bauds);
+    rb_ractor_make_shareable(bauds_names);
+    rb_ractor_make_shareable(tcsetattr_opt);
+    rb_ractor_make_shareable(tcflush_qs);
+    rb_ractor_make_shareable(tcflow_act);
+    rb_ractor_make_shareable(ioctl_commands);
+    rb_ractor_make_shareable(ioctl_commands_names);
+    rb_ractor_make_shareable(modem_signals);
+    rb_ractor_make_shareable(modem_signals_names);
+    rb_ractor_make_shareable(pty_pkt_options);
+    rb_ractor_make_shareable(pty_pkt_options_names);
+    rb_ractor_make_shareable(line_disciplines);
+    rb_ractor_make_shareable(line_disciplines_names);
 }
